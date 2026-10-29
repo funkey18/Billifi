@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Mail, MapPin, Phone, ShieldCheck } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import {
   PRODUCT_NAME,
   SUPPORT_EMAIL,
@@ -45,10 +45,6 @@ export default function PublicLayout() {
               Enterprise-ready GST invoicing for Indian MSMEs — tax invoices, inventory,
               returns helpers, and secure multi-tenant cloud workspaces with trial-based plans.
             </p>
-            <div className="g-footer-trust">
-              <ShieldCheck size={16} />
-              <span>JWT auth · Tenant isolation · Razorpay billing</span>
-            </div>
           </div>
 
           <div className="g-footer-col">
