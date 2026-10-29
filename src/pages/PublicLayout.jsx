@@ -1,5 +1,13 @@
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { Mail, MapPin, Phone, ShieldCheck } from 'lucide-react';
+import {
+  PRODUCT_NAME,
+  SUPPORT_EMAIL,
+  SALES_EMAIL,
+  PRIVACY_EMAIL,
+  SUPPORT_PHONE_DISPLAY,
+  SUPPORT_PHONE_TEL,
+} from '../brand';
 import './public.css';
 
 export default function PublicLayout() {
@@ -7,8 +15,8 @@ export default function PublicLayout() {
     <div className="pub-shell">
       <header className="g-header">
         <Link to="/" className="g-logo">
-          <span className="g-logo-mark">G</span>
-          Free GST Billing
+          <span className="g-logo-mark">B</span>
+          {PRODUCT_NAME}
         </Link>
 
         <nav className="g-nav">
@@ -30,8 +38,8 @@ export default function PublicLayout() {
         <div className="g-footer-main">
           <div className="g-footer-brand">
             <div className="g-footer-brand-row">
-              <span className="g-logo-mark">G</span>
-              <strong>Free GST Billing</strong>
+              <span className="g-logo-mark">B</span>
+              <strong>{PRODUCT_NAME}</strong>
             </div>
             <p>
               Enterprise-ready GST invoicing for Indian MSMEs — tax invoices, inventory,
@@ -64,10 +72,10 @@ export default function PublicLayout() {
           <div className="g-footer-col">
             <h4>Company</h4>
             <Link to="/about">About us</Link>
-            <Link to="/features">Why Free GST Billing</Link>
+            <Link to="/features">Why {PRODUCT_NAME}</Link>
             <Link to="/pricing">Compare plans</Link>
-            <a href="mailto:support@freegstbill.app">Support</a>
-            <a href="mailto:privacy@freegstbill.app">Privacy</a>
+            <a href={`mailto:${SUPPORT_EMAIL}`}>Support</a>
+            <a href={`mailto:${PRIVACY_EMAIL}`}>Privacy</a>
           </div>
 
           <div className="g-footer-col g-footer-contact">
@@ -78,22 +86,22 @@ export default function PublicLayout() {
             </div>
             <div className="g-footer-contact-row">
               <Phone size={16} />
-              <a href="tel:+919876543210">+91 98765 43210</a>
+              <a href={SUPPORT_PHONE_TEL}>{SUPPORT_PHONE_DISPLAY}</a>
             </div>
             <div className="g-footer-contact-row">
               <Mail size={16} />
-              <a href="mailto:support@freegstbill.app">support@freegstbill.app</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             </div>
             <div className="g-footer-contact-row">
               <Mail size={16} />
-              <a href="mailto:sales@freegstbill.app">sales@freegstbill.app</a>
+              <a href={`mailto:${SALES_EMAIL}`}>{SALES_EMAIL}</a>
             </div>
             <p className="g-footer-hours">Support hours: Mon–Sat, 10:00–19:00 IST</p>
           </div>
         </div>
 
         <div className="g-footer-bottom">
-          <span>© {new Date().getFullYear()} Free GST Billing. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} {PRODUCT_NAME}. All rights reserved.</span>
           <span>Your Business. Our Software. Better Compliance.</span>
           <span>Terms · Privacy · Security</span>
         </div>

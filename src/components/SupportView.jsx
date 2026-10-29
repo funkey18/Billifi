@@ -1,28 +1,30 @@
-// v1.10.75 - Support & About. Who builds the app, how to help (free ways
-// first, then UPI), and what DiceCodes does for businesses. Decided with the
-// maintainer: ask gently, never lock a feature, never print anything on a
-// user's invoice. UPI only for money: it works offline (the QR is drawn here)
-// and costs the giver nothing.
+// Support & About — BilliFi branding and contact.
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { Heart, Star, Share2, Bug, Copy, Check, Mail, Globe, Code, Wrench, Database, LifeBuoy, Bot, Smartphone, Workflow, Users } from 'lucide-react';
+import { Heart, Star, Share2, Bug, Copy, Check, Mail, Phone, Code, Wrench, Database, LifeBuoy, Bot, Smartphone, Workflow, Users } from 'lucide-react';
 import { toast } from './Toast';
 import { getProfile } from '../store';
 import { upiNote } from '../utils/supporters';
 import useSupporters from './useSupporters';
+import {
+  PRODUCT_NAME,
+  SUPPORT_EMAIL,
+  SUPPORT_PHONE_DISPLAY,
+  SUPPORT_PHONE_TEL,
+  SUPPORT_WHATSAPP,
+} from '../brand';
 
 const inr = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
 
 const SUPPORT_UPI_ID = 'princeramgarhiaa-1@okaxis';
-const UPI_NAME = 'DiceCodes';
-const REPO = 'https://github.com/IamRamgarhia/Free-GST-Billing-Software';
-const EMAIL = 'contact@dicecodes.com';
-const SITE = 'https://dicecodes.com';
+const UPI_NAME = 'BilliFi';
+const REPO = 'https://github.com/funkey18/Billifi';
+const EMAIL = SUPPORT_EMAIL;
 const AMOUNTS = [0, 101, 251, 501];
 
 const SERVICES = [
   { icon: Code, title: 'Custom software & web apps', text: 'Websites, web apps and business tools built for how you work.' },
-  { icon: Wrench, title: 'Customising this app', text: 'Your own invoice layout, reports or features in Free GST Billing.' },
+  { icon: Wrench, title: 'Customising this app', text: `Your own invoice layout, reports or features in ${PRODUCT_NAME}.` },
   { icon: Database, title: 'Setup & data migration', text: 'Installation, moving your data from Tally or Excel, and training.' },
   { icon: LifeBuoy, title: 'Support plans for businesses', text: 'Priority help and updates on a yearly plan.' },
   { icon: Bot, title: 'AI integration', text: 'Add AI to your product: assistants, document reading, smart search.' },
@@ -62,7 +64,7 @@ export default function SupportView() {
     } catch { toast(`UPI ID: ${SUPPORT_UPI_ID}`, 'info', 6000); }
   };
 
-  const shareText = `I make my GST invoices with Free GST Billing Software. It's free, works offline and keeps data on your own computer: ${REPO}`;
+  const shareText = `I make my GST invoices with ${PRODUCT_NAME}. Secure multi-tenant GST billing for Indian businesses: ${REPO}`;
   const freeWays = [
     { icon: Star, title: 'Star it on GitHub', text: 'Helps other businesses find it.', href: REPO },
     { icon: Share2, title: 'Tell another business', text: 'Send it to a friend on WhatsApp.', href: `https://wa.me/?text=${encodeURIComponent(shareText)}` },
@@ -77,7 +79,7 @@ export default function SupportView() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Support &amp; About</h1>
-          <p className="page-subtitle">Who makes Free GST Billing, and how you can help it grow</p>
+          <p className="page-subtitle">Who makes {PRODUCT_NAME}, and how you can help it grow</p>
         </div>
       </div>
 
@@ -86,9 +88,8 @@ export default function SupportView() {
         <div>
           <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.05rem' }}>Free, and it stays free</h3>
           <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '70ch' }}>
-            Free GST Billing is built and maintained by <b>DiceCodes</b> in India. No ads, no account, no locked features,
-            and your invoices never leave this computer. If it saves you time every month, you can help keep the
-            fixes and new features coming.
+            {PRODUCT_NAME} is built for Indian MSMEs — GST invoices, inventory, returns helpers, and secure
+            multi-tenant workspaces. Need help? Call or WhatsApp <b>{SUPPORT_PHONE_DISPLAY}</b>.
           </p>
         </div>
       </div>
@@ -123,7 +124,7 @@ export default function SupportView() {
             {businessName && (
               <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.35rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={withName} onChange={(e) => setWithName(e.target.checked)} />
-                Include my business name, so DiceCodes can thank you
+                Include my business name, so BilliFi can thank you
               </label>
             )}
           </div>
@@ -152,7 +153,7 @@ export default function SupportView() {
               <h3 style={{ margin: '0 0 0.2rem', fontSize: '1rem' }}>
                 {tracker.totalReceived > 0
                   ? <>{inr(tracker.totalReceived)} received so far{tracker.supporters ? ` from ${tracker.supporters} supporter${tracker.supporters === 1 ? '' : 's'}` : ''}</>
-                  : 'Be the first to support Free GST Billing'}
+                  : `Be the first to support ${PRODUCT_NAME}`}
               </h3>
               <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 Every rupee goes into fixes and new features.{tracker.updated ? ` Updated ${new Date(`${tracker.updated}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}.` : ''}
@@ -181,8 +182,8 @@ export default function SupportView() {
       )}
 
       <div className="glass-panel" style={card}>
-        <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>Work with DiceCodes</h3>
-        <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>The team behind this app builds software for businesses too.</p>
+        <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>Work with BilliFi</h3>
+        <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>Custom software, setup help, and support plans for your business.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1.1rem' }}>
           {SERVICES.map((w) => (
             <div key={w.title} style={{ display: 'flex', gap: '0.7rem', padding: '0.85rem', borderRadius: 8, background: 'var(--bg-secondary)' }}>
@@ -195,10 +196,15 @@ export default function SupportView() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <a className="btn btn-primary" href={`mailto:${EMAIL}?subject=${encodeURIComponent('Project enquiry (from Free GST Billing)')}`}>
+          <a className="btn btn-primary" href={SUPPORT_PHONE_TEL}>
+            <Phone size={16} /> Call {SUPPORT_PHONE_DISPLAY}
+          </a>
+          <a className="btn btn-secondary" href={SUPPORT_WHATSAPP} target="_blank" rel="noopener noreferrer">
+            <Smartphone size={16} /> WhatsApp
+          </a>
+          <a className="btn btn-secondary" href={`mailto:${EMAIL}?subject=${encodeURIComponent(`Project enquiry (from ${PRODUCT_NAME})`)}`}>
             <Mail size={16} /> Email {EMAIL}
           </a>
-          <a className="btn btn-secondary" href={SITE} target="_blank" rel="noopener noreferrer"><Globe size={16} /> dicecodes.com</a>
         </div>
       </div>
     </div>

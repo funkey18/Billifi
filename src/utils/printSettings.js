@@ -553,7 +553,7 @@ export const buildSampleInvoice = (profile) => ({
     gstin: '27AAAAA0000A1Z5',
     country: 'India',
   },
-  client: { name: 'SAMPLE CUSTOMER', phone: '+91-9876543210', gstin: '', country: 'India' },
+  client: { name: 'SAMPLE CUSTOMER', phone: '+91-8668806938', gstin: '', country: 'India' },
   details: { invoiceNumber: 'TEST/PRINT/0001', invoiceDate: new Date().toISOString().split('T')[0], placeOfSupply: '' },
   items: [
     { name: 'Sample Product One', hsn: '4820', quantity: 2, unit: 'Pcs', rate: 100, taxPercent: 18, discount: 0, cessPercent: 0 },

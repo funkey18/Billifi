@@ -85,7 +85,7 @@ export default function BillingPage({ forced = false }) {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: 'Free GST Billing',
+        name: 'BilliFi',
         description: `${order.plan.name} plan`,
         order_id: order.orderId,
         prefill: order.prefill,

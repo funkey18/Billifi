@@ -44,7 +44,7 @@ export default function HomePage() {
             </h1>
             <p className="g-hero-chain">Ideas → Invoices → Impact</p>
             <p className="g-hero-lead">
-              Free GST Billing is a secure, multi-tenant invoicing platform for Indian shops,
+              BilliFi is a secure, multi-tenant invoicing platform for Indian shops,
               freelancers and traders. Create tax invoices, manage stock and payments, prepare
               GST returns — then continue on Monthly, Silver, Gold, or Platinum after your free trial.
             </p>
@@ -131,7 +131,7 @@ export default function HomePage() {
 
       {/* 4) SERVICES — eyebrow + dual headline + 3×2 cards */}
       <section className="g-services">
-        <p className="g-eyebrow">Why Choose Free GST Billing?</p>
+        <p className="g-eyebrow">Why Choose BilliFi?</p>
         <h2>
           We Build More Than Just Invoices
           <span>We Build Your Compliance</span>

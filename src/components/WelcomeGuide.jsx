@@ -18,7 +18,7 @@ export default function WelcomeGuide({ onComplete }) {
   const [profile, setProfile] = useState({
     businessName: '', address: '', city: '', pin: '', state: '', country: 'India', gstin: '', pan: '',
     email: '', phone: '', bankName: '', accountNumber: '', ifsc: '', swift: '',
-    logo: '', signature: '', upiId: '', googleClientId: '', googleDriveFolder: 'GST Billing Invoices',
+    logo: '', signature: '', upiId: '', googleClientId: '', googleDriveFolder: 'BilliFi Invoices',
   });
   // v1.10.67 (#66 item 2, @sangwanmail-eng) — this is an India-first GST app,
   // so India is the default. It used to be chosen from the browser locale, and
@@ -115,7 +115,7 @@ export default function WelcomeGuide({ onComplete }) {
               <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem' }}>
                 <FileText size={32} color="white" />
               </div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Welcome to Free GST Billing Software</h1>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>Welcome to BilliFi</h1>
               <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: 1.6 }}>
                 Free, open-source GST billing software that runs 100% on your computer. Your data never leaves your machine.
               </p>
@@ -215,7 +215,7 @@ export default function WelcomeGuide({ onComplete }) {
                   <div className="form-group">
                     <label className="form-label">Phone</label>
                     <input type="text" name="phone" className="form-input" value={profile.phone} onChange={handleChange}
-                      placeholder="+91 98765 43210" />
+                      placeholder="+91 86688 06938" />
                   </div>
                 </div>
 

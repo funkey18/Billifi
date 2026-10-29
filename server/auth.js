@@ -233,7 +233,7 @@ export function registerAuthRoutes(app) {
 
   app.get('/api/public/info', (_req, res) => {
     res.json({
-      name: 'Free GST Billing Software',
+      name: 'BilliFi',
       tagline: 'GST-ready invoicing for every business — secure, multi-tenant, and ready for the cloud.',
       features: [
         'Tax Invoice, Credit Note, Bill of Supply',

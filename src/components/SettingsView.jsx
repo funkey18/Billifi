@@ -41,7 +41,7 @@ export default function SettingsView({ onSaved }) {
   const [profile, setProfile] = useState({
     businessName: '', address: '', state: '', gstin: '', pan: '',
     email: '', phone: '', bankName: '', accountNumber: '', ifsc: '',
-    logo: '', logoHeight: 48, signature: '', signatureHeight: 60, stamp: '', stampHeight: 70, upiId: '', googleClientId: '', googleDriveFolder: 'GST Billing Invoices',
+    logo: '', logoHeight: 48, signature: '', signatureHeight: 60, stamp: '', stampHeight: 70, upiId: '', googleClientId: '', googleDriveFolder: 'BilliFi Invoices',
   });
   // v1.10.36 — Scroll-spy: which section is currently in the viewport,
   // so the corresponding pill lights up as the user scrolls. Cheap
@@ -566,7 +566,7 @@ export default function SettingsView({ onSaved }) {
           const ok = await ensureToken(profile.googleClientId);
           if (!ok) { toast('Drive auth failed — backup downloaded locally only', 'warning'); }
           else {
-            const folderName = (profile.googleDriveFolder || 'GST Billing Invoices') + ' - Backups';
+            const folderName = (profile.googleDriveFolder || 'BilliFi Invoices') + ' - Backups';
             const folderId = await findOrCreateFolder(folderName);
             const result = await uploadJSON(fileName, json, folderId);
             toast(`Saved to Drive — ${result.name}`, 'success');
@@ -590,7 +590,7 @@ export default function SettingsView({ onSaved }) {
     try {
       const text = await file.text();
       const inspection = inspectBackup(text);
-      if (!inspection.valid) { toast("This file doesn't look like a Free GST Billing backup.", 'error'); return; }
+      if (!inspection.valid) { toast("This file doesn't look like a BilliFi backup.", 'error'); return; }
       setImportInspection(inspection);
       setImportJsonText(text);
       // Auto-tick only the parts that actually have data in the file
@@ -731,7 +731,7 @@ export default function SettingsView({ onSaved }) {
     const blank = {
       businessName: '', address: '', city: '', state: '', pin: '', country: profile.country || 'India',
       gstin: '', pan: '', email: '', phone: '', bankName: '', accountNumber: '', ifsc: '', swift: '',
-      logo: '', logoHeight: 48, signature: '', signatureHeight: 60, stamp: '', stampHeight: 70, upiId: '', googleClientId: '', googleDriveFolder: 'GST Billing Invoices',
+      logo: '', logoHeight: 48, signature: '', signatureHeight: 60, stamp: '', stampHeight: 70, upiId: '', googleClientId: '', googleDriveFolder: 'BilliFi Invoices',
     };
     setProfile(blank);
     markProfileSaved(blank);
@@ -1598,7 +1598,7 @@ export default function SettingsView({ onSaved }) {
               <div className="form-group">
                 <label className="form-label">Drive Folder Name</label>
                 <input type="text" name="googleDriveFolder" className="form-input" value={profile.googleDriveFolder} onChange={handleChange}
-                  placeholder="GST Billing Invoices" />
+                  placeholder="BilliFi Invoices" />
               </div>
               <div className="form-group">
                 <label className="form-label">Status</label>
@@ -1807,7 +1807,7 @@ export default function SettingsView({ onSaved }) {
               <span>
                 <span className="cbx-label">Also save a copy to my Google Drive</span>
                 <span className="cbx-hint">
-                  Uploads to <em>{(profile.googleDriveFolder || 'GST Billing Invoices')} - Backups</em> in your Drive. Requires Google Client ID configured above. The file always downloads to your computer too.
+                  Uploads to <em>{(profile.googleDriveFolder || 'BilliFi Invoices')} - Backups</em> in your Drive. Requires Google Client ID configured above. The file always downloads to your computer too.
                 </span>
               </span>
             </label>

@@ -8,7 +8,7 @@ export default function AboutPage() {
         <p className="g-eyebrow">About us</p>
         <h1>Built for Indian <span>MSMEs</span></h1>
         <p>
-          Free GST Billing helps shops, freelancers and traders create invoices and prepare GST data —
+          BilliFi helps shops, freelancers and traders create invoices and prepare GST data —
           with secure multi-tenant hosting and fair trial-based subscriptions.
         </p>
       </div>
