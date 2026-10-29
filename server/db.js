@@ -6,9 +6,13 @@ import { getTenantId } from './context.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const DB_DIR = path.join(ROOT, 'data');
+const DB_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const DB_PATH = process.env.DATABASE_PATH || path.join(DB_DIR, 'gst_multitenant.db');
 
+// Ensure the directory for the DB exists — including when DATABASE_PATH /
+// DATA_DIR point at a cloud volume mount (e.g. /var/data).
+const dbParent = path.dirname(DB_PATH);
+if (!fs.existsSync(dbParent)) fs.mkdirSync(dbParent, { recursive: true });
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
