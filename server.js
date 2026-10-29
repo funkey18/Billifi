@@ -59,8 +59,18 @@ const app = express();
 app.use(cookieParser());
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  // Vite module scripts send Origin even for same-origin loads. Allow when
+  // Origin's host matches this request's Host (https://billifi.onrender.com
+  // loading /assets/*.js from itself must not 403).
+  let sameOrigin = false;
+  if (origin && req.headers.host) {
+    try {
+      sameOrigin = new URL(origin).host === req.headers.host;
+    } catch { /* ignore bad Origin */ }
+  }
   const allow =
     !origin ||
+    sameOrigin ||
     /^https?:\/\/localhost(:\d+)?$/i.test(origin) ||
     /^https?:\/\/127\.0\.0\.1(:\d+)?$/i.test(origin) ||
     /^https?:\/\/\[::1\](:\d+)?$/i.test(origin) ||
