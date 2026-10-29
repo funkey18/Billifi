@@ -1751,22 +1751,33 @@ process.on('unhandledRejection', (err) => logFatal(err, 'unhandledRejection'));
 // catch-all was swallowing every request to it and returning "No such
 // endpoint". Moved above the catch-all in v1.10.0. See earlier in file.
 
+// Local installs bind 127.0.0.1 only (privacy). Cloud hosts (Render/Railway/Fly)
+// set PORT and should set HOST=0.0.0.0 so the public URL can reach the process.
+const HOST = process.env.HOST || '127.0.0.1';
+const ENV_PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+const BOOT_PORT = (ENV_PORT && Number.isFinite(ENV_PORT)) ? ENV_PORT : STARTING_PORT;
+
 // Try ports starting from STARTING_PORT (persisted preference) until one is available.
-// Bound to 127.0.0.1 explicitly so the server can NEVER be reached from the LAN —
-// every byte stays on the user's machine, which the privacy promise depends on.
+// When PORT is set by the platform, bind that exact port and do not scan.
 let activeServer = null;
 function startServer(port) {
-  const server = app.listen(port, '127.0.0.1', () => {
+  const server = app.listen(port, HOST, () => {
     activeServer = server;
     // Persist the chosen port — the .bat launcher reads this for the browser URL.
     // Writing on EVERY successful boot means: if our preferred 47371 was busy and
     // we landed on 47372 instead, next launch tries 47372 first (cuts collision
     // scans in half on repeated reboots of whatever was holding 47371).
     try { fs.writeFileSync(PORT_FILE, String(port), 'utf-8'); } catch { /* ignore */ }
-    console.log(`\n  Free GST Billing Software running at http://localhost:${port}`);
+    const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+    console.log(`\n  Free GST Billing Software running at http://${displayHost}:${port}`);
     console.log(`  Data stored in: ${DATA_DIR}\n`);
   });
   server.on('error', (err) => {
+    if (ENV_PORT != null) {
+      console.error(`  Failed to bind platform PORT ${port}: ${err.message}`);
+      logFatal(err, 'startup');
+      process.exit(1);
+    }
     if (err.code === 'EADDRINUSE' && port < STARTING_PORT + MAX_PORT_SCAN) {
       console.log(`  Port ${port} is busy, trying ${port + 1}...`);
       startServer(port + 1);
@@ -2052,7 +2063,7 @@ app.post('/api/recurring/:id/generate', (req, res) => {
   }
 });
 
-startServer(STARTING_PORT);
+startServer(BOOT_PORT);
 // Fire once after a short delay so the listener is up first; then once a day
 // for users whose server stays up >24h.
 // v1.10.6 — audit L19: async caller. Uncaught rejections logged via
