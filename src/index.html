@@ -48,13 +48,13 @@
     -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src  'self' 'wasm-unsafe-eval' https://accounts.google.com https://apis.google.com;
+      script-src  'self' 'wasm-unsafe-eval' https://accounts.google.com https://apis.google.com https://checkout.razorpay.com https://beta.hyperswitch.io;
       worker-src  'self' blob:;
       style-src   'self' 'unsafe-inline' http://localhost:* http://127.0.0.1:* https://fonts.googleapis.com;
       font-src    'self' https://fonts.gstatic.com data:;
-      img-src     'self' data: blob: https://*.googleusercontent.com;
-      connect-src 'self' http://localhost:* https://accounts.google.com https://www.googleapis.com https://api.github.com https://nodejs.org https://raw.githubusercontent.com;
-      frame-src   'self' blob: https://accounts.google.com;
+      img-src     'self' data: blob: https://*.googleusercontent.com https://*.razorpay.com;
+      connect-src 'self' http://localhost:* https://accounts.google.com https://www.googleapis.com https://api.github.com https://nodejs.org https://raw.githubusercontent.com https://api.razorpay.com https://lumberjack.razorpay.com https://checkout.razorpay.com https://sandbox.hyperswitch.io https://api.hyperswitch.io https://beta.hyperswitch.io;
+      frame-src   'self' blob: https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com https://*.hyperswitch.io;
       object-src  'none';
       base-uri    'self';
     " />
