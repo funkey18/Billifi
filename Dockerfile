@@ -18,15 +18,15 @@ RUN apt-get update -qq && \
       pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
-# Install ALL deps (including vite). Force non-production install so
-# NODE_ENV=production from the platform cannot omit devDependencies.
+# Install deps first (package files only). Ignore scripts — postinstall needs
+# scripts/bundle-tesseract-assets.mjs which is not copied until the next step.
 COPY package-lock.json package.json ./
-RUN npm ci --include=dev --no-audit --no-fund \
+RUN npm ci --include=dev --ignore-scripts --no-audit --no-fund \
     && test -x node_modules/.bin/vite
 
 COPY . .
 
-# Build frontend into dist/
+# prebuild runs tesseract bundling; then vite builds dist/
 RUN npm run build \
     && test -f dist/index.html
 
