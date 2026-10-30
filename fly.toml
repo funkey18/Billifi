@@ -1,0 +1,31 @@
+# BilliFi on Fly.io — SQLite on a persistent volume at /data
+app = 'billifi'
+primary_region = 'sin'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  HOST = '0.0.0.0'
+  PORT = '8080'
+  NODE_ENV = 'production'
+  DATA_DIR = '/data'
+  DATABASE_PATH = '/data/gst_multitenant.db'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[mounts]]
+  source = 'billifi_data'
+  destination = '/data'
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512
