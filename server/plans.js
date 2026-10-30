@@ -1,4 +1,4 @@
-/** Public plan catalogue — amounts in paise (Razorpay) and display INR.
+/** Public plan catalogue — amounts in paise (Hyperswitch / INR minor units) and display INR.
  *  Aligned with market GST-billing pricing (Vyapar Desktop-class tiers).
  *  Ref: https://vyaparapp.in/pricing
  */

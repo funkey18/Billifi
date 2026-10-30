@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { getToken } from '../auth';
 import './public.css';
 
@@ -8,6 +8,25 @@ function authHeaders() {
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
+}
+
+function loadHyperLoader(sdkUrl) {
+  return new Promise((resolve) => {
+    if (window.Hyper) return resolve(true);
+    const existing = document.querySelector('script[data-hyperswitch-loader]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.Hyper));
+      existing.addEventListener('error', () => resolve(false));
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = sdkUrl || 'https://beta.hyperswitch.io/v1/HyperLoader.js';
+    s.async = true;
+    s.dataset.hyperswitchLoader = '1';
+    s.onload = () => resolve(!!window.Hyper);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
 }
 
 function loadRazorpayScript() {
@@ -23,11 +42,16 @@ function loadRazorpayScript() {
 
 export default function BillingPage({ forced = false }) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cfg, setCfg] = useState(null);
   const [ent, setEnt] = useState(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [payments, setPayments] = useState([]);
+  const [checkout, setCheckout] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const hyperRef = useRef(null);
+  const widgetsRef = useRef(null);
 
   const refresh = useCallback(async () => {
     const [plansRes, statusRes, payRes] = await Promise.all([
@@ -45,7 +69,90 @@ export default function BillingPage({ forced = false }) {
 
   useEffect(() => { refresh().catch(() => {}); }, [refresh]);
 
-  const completeMockOrRazorpay = async (planId) => {
+  // Return from Hyperswitch redirect (3DS / wallets)
+  useEffect(() => {
+    const paymentFlag = searchParams.get('payment');
+    const localPaymentId = searchParams.get('local_payment_id');
+    if (paymentFlag !== 'return' || !localPaymentId) return;
+
+    let cancelled = false;
+    (async () => {
+      setBusy('verify');
+      setError('');
+      try {
+        const verify = await fetch('/api/billing/verify', {
+          method: 'POST',
+          credentials: 'include',
+          headers: authHeaders(),
+          body: JSON.stringify({ paymentId: localPaymentId }),
+        });
+        const result = await verify.json();
+        if (!verify.ok) throw new Error(result.error || 'Verification failed');
+        if (cancelled) return;
+        setEnt(result.entitlement);
+        await refresh();
+        setSearchParams({}, { replace: true });
+        navigate('/app', { replace: true });
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Payment verification failed');
+      } finally {
+        if (!cancelled) setBusy('');
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [searchParams, setSearchParams, navigate, refresh]);
+
+  useEffect(() => {
+    if (!checkout || checkout.mode !== 'hyperswitch') return undefined;
+
+    let cancelled = false;
+    let unifiedCheckout;
+
+    (async () => {
+      const ok = await loadHyperLoader(checkout.sdkUrl);
+      if (!ok || cancelled) {
+        if (!cancelled) setError('Could not load Hyperswitch checkout');
+        return;
+      }
+
+      const hyperOpts = { customBackendUrl: checkout.baseUrl };
+      if (checkout.profileId) hyperOpts.profileId = checkout.profileId;
+      const hyper = window.Hyper(checkout.publishableKey, hyperOpts);
+      hyperRef.current = hyper;
+
+      const widgets = hyper.widgets({
+        appearance: { theme: 'default' },
+        clientSecret: checkout.clientSecret,
+      });
+      widgetsRef.current = widgets;
+
+      unifiedCheckout = widgets.create('payment', {
+        layout: 'tabs',
+        wallets: {
+          walletReturnUrl: checkout.returnUrl,
+        },
+      });
+      unifiedCheckout.mount('#hyperswitch-unified-checkout');
+    })().catch((err) => {
+      if (!cancelled) setError(err.message || 'Failed to initialize checkout');
+    });
+
+    return () => {
+      cancelled = true;
+      try { unifiedCheckout?.destroy?.(); } catch { /* ignore */ }
+      hyperRef.current = null;
+      widgetsRef.current = null;
+    };
+  }, [checkout]);
+
+  const closeCheckout = () => {
+    setCheckout(null);
+    setBusy('');
+    setPaying(false);
+  };
+
+  const startCheckout = async (planId) => {
     setBusy(planId);
     setError('');
     try {
@@ -65,9 +172,7 @@ export default function BillingPage({ forced = false }) {
           headers: authHeaders(),
           body: JSON.stringify({
             paymentId: order.paymentId,
-            razorpayOrderId: order.orderId,
-            razorpayPaymentId: `mock_${Date.now()}`,
-            razorpaySignature: 'mock',
+            orderId: order.orderId,
           }),
         });
         const result = await verify.json();
@@ -78,49 +183,98 @@ export default function BillingPage({ forced = false }) {
         return;
       }
 
-      const ok = await loadRazorpayScript();
-      if (!ok) throw new Error('Could not load Razorpay Checkout');
+      if (order.mode === 'razorpay') {
+        const ok = await loadRazorpayScript();
+        if (!ok) throw new Error('Could not load Razorpay Checkout');
 
-      const rzp = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'BilliFi',
-        description: `${order.plan.name} plan`,
-        order_id: order.orderId,
-        prefill: order.prefill,
-        theme: { color: '#1f6b4a' },
-        handler: async (response) => {
-          try {
-            const verify = await fetch('/api/billing/verify', {
-              method: 'POST',
-              credentials: 'include',
-              headers: authHeaders(),
-              body: JSON.stringify({
-                paymentId: order.paymentId,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
-            const result = await verify.json();
-            if (!verify.ok) throw new Error(result.error || 'Verification failed');
-            setEnt(result.entitlement);
-            await refresh();
-            navigate('/app', { replace: true });
-          } catch (err) {
-            setError(err.message || 'Payment verification failed');
-          } finally {
-            setBusy('');
-          }
-        },
-        modal: {
-          ondismiss: () => setBusy(''),
-        },
-      });
-      rzp.open();
+        const rzp = new window.Razorpay({
+          key: order.keyId,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'BilliFi',
+          description: `${order.plan.name} plan`,
+          order_id: order.orderId,
+          prefill: order.prefill,
+          theme: { color: '#1f6b4a' },
+          handler: async (response) => {
+            try {
+              const verify = await fetch('/api/billing/verify', {
+                method: 'POST',
+                credentials: 'include',
+                headers: authHeaders(),
+                body: JSON.stringify({
+                  paymentId: order.paymentId,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+              const result = await verify.json();
+              if (!verify.ok) throw new Error(result.error || 'Verification failed');
+              setEnt(result.entitlement);
+              await refresh();
+              navigate('/app', { replace: true });
+            } catch (err) {
+              setError(err.message || 'Payment verification failed');
+            } finally {
+              setBusy('');
+            }
+          },
+          modal: { ondismiss: () => setBusy('') },
+        });
+        rzp.open();
+        return;
+      }
+
+      setCheckout(order);
     } catch (err) {
       setError(err.message || 'Payment failed');
+      setBusy('');
+    }
+  };
+
+  const confirmHyperswitch = async (e) => {
+    e.preventDefault();
+    if (!hyperRef.current || !widgetsRef.current || !checkout) return;
+    setPaying(true);
+    setError('');
+    try {
+      const { error: payError, status } = await hyperRef.current.confirmPayment({
+        widgets: widgetsRef.current,
+        confirmParams: {
+          return_url: checkout.returnUrl,
+        },
+        redirect: 'if_required',
+      });
+
+      if (payError) {
+        throw new Error(payError.message || 'Payment failed');
+      }
+
+      if (!status || ['succeeded', 'processing', 'partially_captured'].includes(String(status).toLowerCase())) {
+        const verify = await fetch('/api/billing/verify', {
+          method: 'POST',
+          credentials: 'include',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            paymentId: checkout.paymentId,
+            orderId: checkout.orderId || checkout.hyperswitchPaymentId,
+          }),
+        });
+        const result = await verify.json();
+        if (!verify.ok) throw new Error(result.error || 'Verification failed');
+        setEnt(result.entitlement);
+        closeCheckout();
+        await refresh();
+        navigate('/app', { replace: true });
+        return;
+      }
+
+      throw new Error(`Unexpected payment status: ${status}`);
+    } catch (err) {
+      setError(err.message || 'Payment verification failed');
+    } finally {
+      setPaying(false);
       setBusy('');
     }
   };
@@ -175,13 +329,45 @@ export default function BillingPage({ forced = false }) {
             </p>
             {ent.paymentMode === 'mock' && (
               <p style={{ color: '#9a3412', marginTop: '0.5rem' }}>
-                Payment gateway is in <strong>mock mode</strong> (no Razorpay keys). Checkout will simulate a successful payment for local testing.
+                Payment gateway is in <strong>mock mode</strong> (no gateway keys). Checkout will simulate a successful payment for local testing.
+              </p>
+            )}
+            {ent.paymentMode === 'razorpay' && (
+              <p style={{ color: 'var(--g-muted)', marginTop: '0.5rem' }}>
+                Payments run through <strong>Razorpay</strong> (test/live keys from your Razorpay dashboard).
+              </p>
+            )}
+            {ent.paymentMode === 'hyperswitch' && (
+              <p style={{ color: 'var(--g-muted)', marginTop: '0.5rem' }}>
+                Payments run through <strong>Hyperswitch</strong> (open-source payment orchestration).
               </p>
             )}
           </div>
         )}
 
         {error && <div className="pub-error">{error}</div>}
+
+        {checkout?.mode === 'hyperswitch' && (
+          <div className="pub-svc" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0 }}>Pay {checkout.plan?.label} — {checkout.plan?.name}</h3>
+              <button type="button" className="pub-btn pub-btn-ghost" onClick={closeCheckout} disabled={paying}>
+                Cancel
+              </button>
+            </div>
+            <form onSubmit={confirmHyperswitch}>
+              <div id="hyperswitch-unified-checkout" style={{ minHeight: 180 }} />
+              <button
+                type="submit"
+                className="pub-btn pub-btn-primary"
+                style={{ width: '100%', marginTop: '1rem' }}
+                disabled={paying}
+              >
+                {paying ? 'Confirming…' : `Pay ${checkout.plan?.label || ''}`}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="pub-price-grid pub-price-grid-4">
           {(cfg?.plans || []).map((plan) => (
@@ -207,8 +393,8 @@ export default function BillingPage({ forced = false }) {
                 type="button"
                 className="pub-btn pub-btn-primary"
                 style={{ width: '100%' }}
-                disabled={!!busy}
-                onClick={() => completeMockOrRazorpay(plan.id)}
+                disabled={!!busy || !!checkout}
+                onClick={() => startCheckout(plan.id)}
               >
                 {busy === plan.id ? 'Processing…' : `Pay ${plan.label}${plan.periodLabel || ''}`}
               </button>

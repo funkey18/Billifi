@@ -76,6 +76,9 @@ const stmts = {
   listPayments: db.prepare('SELECT * FROM payments WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 50'),
 };
 
+/** Hyperswitch payment_id is stored in payments.razorpay_order_id (legacy column name). */
+const PAID_HS_STATUSES = new Set(['succeeded', 'partially_captured', 'processing']);
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -105,11 +108,26 @@ function periodEndFrom(startIso, planId) {
   return addMonths(startIso, plan.intervalCount);
 }
 
+function hyperswitchBaseUrl() {
+  return (process.env.HYPERSWITCH_BASE_URL || 'https://sandbox.hyperswitch.io').replace(/\/$/, '');
+}
+
+function hyperswitchSdkUrl() {
+  return process.env.HYPERSWITCH_SDK_URL || 'https://beta.hyperswitch.io/v1/HyperLoader.js';
+}
+
+function appPublicUrl() {
+  return (process.env.APP_PUBLIC_URL || process.env.PUBLIC_URL || 'http://localhost:5173').replace(/\/$/, '');
+}
+
 export function paymentMode() {
-  const key = process.env.RAZORPAY_KEY_ID || '';
-  const secret = process.env.RAZORPAY_KEY_SECRET || '';
   if (process.env.PAYMENT_MODE === 'mock') return 'mock';
-  if (key && secret) return 'razorpay';
+  const hsKey = process.env.HYPERSWITCH_API_KEY || '';
+  const hsPub = process.env.HYPERSWITCH_PUBLISHABLE_KEY || '';
+  if (hsKey && hsPub) return 'hyperswitch';
+  const rzpKey = process.env.RAZORPAY_KEY_ID || '';
+  const rzpSecret = process.env.RAZORPAY_KEY_SECRET || '';
+  if (rzpKey && rzpSecret) return 'razorpay';
   return 'mock';
 }
 
@@ -118,6 +136,31 @@ function getRazorpay() {
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
+}
+
+async function hyperswitchFetch(path, { method = 'GET', body } = {}) {
+  const apiKey = process.env.HYPERSWITCH_API_KEY;
+  if (!apiKey) throw Object.assign(new Error('HYPERSWITCH_API_KEY is not configured'), { status: 500 });
+
+  const res = await fetch(`${hyperswitchBaseUrl()}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'api-key': apiKey,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = data?.error?.message || data?.message || data?.error || `Hyperswitch ${res.status}`;
+    throw Object.assign(new Error(typeof msg === 'string' ? msg : 'Hyperswitch request failed'), {
+      status: res.status >= 400 && res.status < 600 ? res.status : 502,
+      details: data,
+    });
+  }
+  return data;
 }
 
 function saveSubscription(row) {
@@ -184,7 +227,6 @@ export function refreshSubscriptionStatus(tenantId) {
         next.status = 'expired';
         next.grace_ends_at = null;
       } else {
-        // Missed renewal → short grace window, then lock.
         const graceEnd = row.grace_ends_at || addDays(row.current_period_end, GRACE_DAYS);
         next.grace_ends_at = graceEnd;
         if (now > Date.parse(graceEnd)) {
@@ -227,11 +269,10 @@ export function getEntitlement(tenantId) {
     reason = 'active';
     daysLeft = Math.max(0, Math.ceil((Date.parse(periodEnd) - now) / 86400000));
   } else if (sub.status === 'past_due') {
-    access = true; // grace: keep working but force paywall banners
+    access = true;
     reason = 'past_due';
     daysLeft = Math.max(0, Math.ceil((Date.parse(graceEndsAt) - now) / 86400000));
   } else if (sub.status === 'cancelled') {
-    // Cancelled but still inside paid period
     if (periodEnd && now <= Date.parse(periodEnd)) {
       access = true;
       reason = 'cancelled_until_period_end';
@@ -303,45 +344,123 @@ export async function createCheckoutOrder(tenantId, planId, user) {
       amount: plan.amountPaise,
       currency: 'INR',
       plan,
-      keyId: null,
+      publishableKey: null,
+      clientSecret: null,
+      returnUrl: `${appPublicUrl()}/billing`,
       prefill: { name: user?.name || '', email: user?.email || '' },
     };
   }
 
-  const rzp = getRazorpay();
-  const order = await rzp.orders.create({
+  if (mode === 'razorpay') {
+    const rzp = getRazorpay();
+    const order = await rzp.orders.create({
+      amount: plan.amountPaise,
+      currency: 'INR',
+      receipt: paymentId,
+      notes: { tenant_id: tenantId, plan_id: planId, payment_id: paymentId },
+    });
+
+    stmts.insertPayment.run(
+      paymentId, tenantId, planId, plan.amountPaise, 'INR', 'created',
+      order.id, null, null, JSON.stringify(order), created, created,
+    );
+
+    return {
+      mode: 'razorpay',
+      paymentId,
+      orderId: order.id,
+      amount: plan.amountPaise,
+      currency: 'INR',
+      plan,
+      keyId: process.env.RAZORPAY_KEY_ID,
+      prefill: { name: user?.name || '', email: user?.email || '' },
+    };
+  }
+
+  const returnUrl = `${appPublicUrl()}/billing?payment=return&local_payment_id=${encodeURIComponent(paymentId)}`;
+  const payload = {
     amount: plan.amountPaise,
     currency: 'INR',
-    receipt: paymentId,
-    notes: { tenant_id: tenantId, plan_id: planId, payment_id: paymentId },
-  });
+    confirm: false,
+    capture_method: 'automatic',
+    description: `BilliFi ${plan.name} plan`,
+    return_url: returnUrl,
+    metadata: {
+      tenant_id: tenantId,
+      plan_id: planId,
+      payment_id: paymentId,
+    },
+  };
+  if (user?.email) {
+    payload.email = user.email;
+    payload.customer = {
+      email: user.email,
+      name: user.name || undefined,
+    };
+  }
+
+  const hsPayment = await hyperswitchFetch('/payments', { method: 'POST', body: payload });
+  const hsPaymentId = hsPayment.payment_id || hsPayment.id;
+  if (!hsPaymentId || !hsPayment.client_secret) {
+    throw Object.assign(new Error('Hyperswitch did not return payment_id/client_secret'), { status: 502 });
+  }
 
   stmts.insertPayment.run(
     paymentId, tenantId, planId, plan.amountPaise, 'INR', 'created',
-    order.id, null, null, JSON.stringify(order), created, created,
+    hsPaymentId, null, hsPayment.client_secret, JSON.stringify(hsPayment), created, created,
   );
 
   return {
-    mode: 'razorpay',
+    mode: 'hyperswitch',
     paymentId,
-    orderId: order.id,
+    orderId: hsPaymentId,
+    hyperswitchPaymentId: hsPaymentId,
+    clientSecret: hsPayment.client_secret,
     amount: plan.amountPaise,
     currency: 'INR',
     plan,
-    keyId: process.env.RAZORPAY_KEY_ID,
+    publishableKey: process.env.HYPERSWITCH_PUBLISHABLE_KEY,
+    profileId: process.env.HYPERSWITCH_PROFILE_ID || null,
+    baseUrl: hyperswitchBaseUrl(),
+    sdkUrl: hyperswitchSdkUrl(),
+    returnUrl,
     prefill: { name: user?.name || '', email: user?.email || '' },
   };
 }
 
-export function verifyAndActivate({
+async function retrieveHyperswitchPayment(hyperswitchPaymentId) {
+  return hyperswitchFetch(`/payments/${encodeURIComponent(hyperswitchPaymentId)}`);
+}
+
+function markPaymentPaid(payment, externalPaymentId, signatureOrSource, raw) {
+  stmts.updatePayment.run(
+    'paid',
+    externalPaymentId || `mock_pay_${Date.now()}`,
+    signatureOrSource,
+    JSON.stringify(raw || { verifiedAt: nowIso() }),
+    nowIso(),
+    payment.id,
+  );
+  activatePaidPlan(payment.tenant_id, payment.plan_id, payment.id);
+  return {
+    already: false,
+    entitlement: getEntitlement(payment.tenant_id),
+    payment: stmts.getPayment.get(payment.id),
+  };
+}
+
+export async function verifyAndActivate({
   tenantId,
   paymentId,
+  orderId,
+  hyperswitchPaymentId,
   razorpayOrderId,
   razorpayPaymentId,
   razorpaySignature,
   source = 'checkout',
 }) {
-  const payment = stmts.getPayment.get(paymentId) || stmts.getPaymentByOrder.get(razorpayOrderId);
+  const hsId = hyperswitchPaymentId || orderId || razorpayOrderId;
+  const payment = stmts.getPayment.get(paymentId) || (hsId ? stmts.getPaymentByOrder.get(hsId) : null);
   if (!payment || payment.tenant_id !== tenantId) {
     throw Object.assign(new Error('Payment not found'), { status: 404 });
   }
@@ -351,8 +470,23 @@ export function verifyAndActivate({
 
   const mode = paymentMode();
   if (source === 'checkout') {
+    if (mode === 'hyperswitch') {
+      const remoteId = payment.razorpay_order_id;
+      const remote = await retrieveHyperswitchPayment(remoteId);
+      const status = String(remote.status || '').toLowerCase();
+      if (!PAID_HS_STATUSES.has(status)) {
+        throw Object.assign(new Error(`Payment not completed (status: ${remote.status || 'unknown'})`), { status: 400 });
+      }
+      return markPaymentPaid(
+        payment,
+        remote.payment_id || remote.id || remoteId,
+        source,
+        { verifiedAt: nowIso(), source, hyperswitch: remote },
+      );
+    }
     if (mode === 'razorpay') {
-      const body = `${razorpayOrderId}|${razorpayPaymentId}`;
+      const orderId = razorpayOrderId || payment.razorpay_order_id;
+      const body = `${orderId}|${razorpayPaymentId}`;
       const expected = crypto
         .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
         .update(body)
@@ -361,22 +495,18 @@ export function verifyAndActivate({
         throw Object.assign(new Error('Invalid payment signature'), { status: 400 });
       }
     } else if (mode === 'mock') {
-      if (!String(razorpayOrderId || '').startsWith('order_mock_')) {
+      if (!String(hsId || payment.razorpay_order_id || '').startsWith('order_mock_')) {
         throw Object.assign(new Error('Invalid mock order'), { status: 400 });
       }
     }
   }
 
-  stmts.updatePayment.run(
-    'paid',
-    razorpayPaymentId || `mock_pay_${Date.now()}`,
+  return markPaymentPaid(
+    payment,
+    razorpayPaymentId || hsId || `mock_pay_${Date.now()}`,
     razorpaySignature || source,
-    JSON.stringify({ verifiedAt: nowIso(), source }),
-    nowIso(),
-    payment.id,
+    { verifiedAt: nowIso(), source },
   );
-  activatePaidPlan(tenantId, payment.plan_id, payment.id);
-  return { already: false, entitlement: getEntitlement(tenantId), payment: stmts.getPayment.get(payment.id) };
 }
 
 export function cancelSubscription(tenantId) {
@@ -384,8 +514,6 @@ export function cancelSubscription(tenantId) {
   if (!['active', 'past_due', 'trialing'].includes(sub.status)) {
     throw Object.assign(new Error('Nothing to cancel'), { status: 400 });
   }
-  // Industry default: cancel at period end; access continues until then.
-  // Cancelling during trial ends access immediately (no paid period to finish).
   if (sub.status === 'trialing') {
     return saveSubscription({
       tenant_id: tenantId,
@@ -430,11 +558,18 @@ export function listTenantPayments(tenantId) {
 }
 
 export function publicBillingConfig() {
+  const mode = paymentMode();
   return {
     trialDays: TRIAL_DAYS,
     graceDays: GRACE_DAYS,
     currency: 'INR',
-    paymentMode: paymentMode(),
+    paymentMode: mode,
+    hyperswitch: mode === 'hyperswitch' ? {
+      publishableKey: process.env.HYPERSWITCH_PUBLISHABLE_KEY || null,
+      profileId: process.env.HYPERSWITCH_PROFILE_ID || null,
+      baseUrl: hyperswitchBaseUrl(),
+      sdkUrl: hyperswitchSdkUrl(),
+    } : null,
     plans: listPlans().map((p) => ({
       id: p.id,
       name: p.name,
@@ -473,6 +608,14 @@ export function isBillingExemptPath(path) {
   return allow.includes(path);
 }
 
+function extractWebhookPayment(event) {
+  const content = event?.content;
+  const obj = content?.object || content?.payment_details || event?.data?.object;
+  if (obj && (obj.payment_id || obj.id)) return obj;
+  if (event?.payment_id) return event;
+  return null;
+}
+
 export function registerBillingRoutes(app) {
   app.get('/api/public/plans', (_req, res) => {
     res.json(publicBillingConfig());
@@ -499,22 +642,26 @@ export function registerBillingRoutes(app) {
       const order = await createCheckoutOrder(req.tenant.id, planId, req.user);
       res.json(order);
     } catch (err) {
+      console.error('[billing.checkout]', err.details || err);
       res.status(err.status || 500).json({ error: err.message || 'Checkout failed' });
     }
   });
 
-  app.post('/api/billing/verify', (req, res) => {
+  app.post('/api/billing/verify', async (req, res) => {
     try {
       if (!req.tenant) return res.status(401).json({ error: 'Authentication required' });
-      const result = verifyAndActivate({
+      const result = await verifyAndActivate({
         tenantId: req.tenant.id,
         paymentId: req.body?.paymentId,
+        orderId: req.body?.orderId || req.body?.hyperswitchPaymentId || req.body?.razorpay_order_id || req.body?.razorpayOrderId,
+        hyperswitchPaymentId: req.body?.hyperswitchPaymentId,
         razorpayOrderId: req.body?.razorpay_order_id || req.body?.razorpayOrderId,
         razorpayPaymentId: req.body?.razorpay_payment_id || req.body?.razorpayPaymentId,
         razorpaySignature: req.body?.razorpay_signature || req.body?.razorpaySignature,
       });
       res.json(result);
     } catch (err) {
+      console.error('[billing.verify]', err.details || err);
       res.status(err.status || 500).json({ error: err.message || 'Verification failed' });
     }
   });
@@ -529,30 +676,68 @@ export function registerBillingRoutes(app) {
     }
   });
 
-  // Razorpay webhooks (payment.captured) — signature via X-Razorpay-Signature
-  app.post('/api/billing/webhook', expressRawJsonFallback, (req, res) => {
+  // Hyperswitch + Razorpay webhooks
+  app.post('/api/billing/webhook', (req, res) => {
     try {
-      const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-      if (secret) {
-        const signature = req.headers['x-razorpay-signature'];
-        const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-        const expected = crypto.createHmac('sha256', secret).update(body).digest('hex');
-        if (signature !== expected) return res.status(400).json({ error: 'Invalid webhook signature' });
+      const rawBody = typeof req.body === 'string'
+        ? req.body
+        : Buffer.isBuffer(req.body)
+          ? req.body.toString('utf8')
+          : JSON.stringify(req.body ?? {});
+
+      const rzpSig = req.headers['x-razorpay-signature'];
+      const hsSecret = process.env.HYPERSWITCH_WEBHOOK_SECRET;
+      const rzpSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+      if (rzpSig && rzpSecret) {
+        const expected = crypto.createHmac('sha256', rzpSecret).update(rawBody).digest('hex');
+        if (expected !== rzpSig) return res.status(400).json({ error: 'Invalid webhook signature' });
+      } else if (hsSecret) {
+        const signature = req.headers['x-webhook-signature-512'] || req.headers['x-webhook-signature-256'];
+        if (!signature) return res.status(400).json({ error: 'Missing webhook signature' });
+        const algo = req.headers['x-webhook-signature-512'] ? 'sha512' : 'sha256';
+        const expected = crypto.createHmac(algo, hsSecret).update(rawBody).digest('hex');
+        const a = Buffer.from(expected);
+        const b = Buffer.from(String(signature));
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+          return res.status(400).json({ error: 'Invalid webhook signature' });
+        }
       }
-      const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      if (event?.event === 'payment.captured') {
+
+      const event = typeof req.body === 'string' || Buffer.isBuffer(req.body)
+        ? JSON.parse(rawBody)
+        : req.body;
+
+      const type = String(event?.event_type || event?.event || '').toLowerCase();
+
+      // Razorpay: payment.captured
+      if (type === 'payment.captured') {
         const entity = event.payload?.payment?.entity;
         const orderId = entity?.order_id;
         const paymentRow = orderId ? stmts.getPaymentByOrder.get(orderId) : null;
         if (paymentRow && paymentRow.status !== 'paid') {
-          verifyAndActivate({
-            tenantId: paymentRow.tenant_id,
-            paymentId: paymentRow.id,
-            razorpayOrderId: orderId,
-            razorpayPaymentId: entity.id,
-            razorpaySignature: 'webhook',
-            source: 'webhook',
-          });
+          markPaymentPaid(paymentRow, entity.id, 'webhook', { verifiedAt: nowIso(), source: 'webhook', event });
+        }
+        return res.json({ ok: true });
+      }
+
+      // Hyperswitch: payment_succeeded / payment_captured
+      const successEvents = new Set(['payment_succeeded', 'payment_captured', 'payment.succeeded']);
+      if (successEvents.has(type)) {
+        const entity = extractWebhookPayment(event);
+        const hsPaymentId = entity?.payment_id || entity?.id;
+        const metaPaymentId = entity?.metadata?.payment_id;
+        const paymentRow = metaPaymentId
+          ? stmts.getPayment.get(metaPaymentId)
+          : (hsPaymentId ? stmts.getPaymentByOrder.get(hsPaymentId) : null);
+
+        if (paymentRow && paymentRow.status !== 'paid') {
+          markPaymentPaid(
+            paymentRow,
+            hsPaymentId || paymentRow.razorpay_order_id,
+            'webhook',
+            { verifiedAt: nowIso(), source: 'webhook', event },
+          );
         }
       }
       res.json({ ok: true });
@@ -563,16 +748,11 @@ export function registerBillingRoutes(app) {
   });
 }
 
-function expressRawJsonFallback(req, res, next) {
-  // Body already parsed by express.json in most cases.
-  next();
-}
-
 export function entitlementMiddleware(req, res, next) {
   if (!req.path.startsWith('/api')) return next();
   if (isBillingExemptPath(req.path)) return next();
   if (req.method === 'OPTIONS') return next();
-  if (!req.tenant) return next(); // auth middleware will 401
+  if (!req.tenant) return next();
 
   const ent = getEntitlement(req.tenant.id);
   req.entitlement = ent;

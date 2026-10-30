@@ -54,7 +54,7 @@ export default function PricingPage() {
         {[
           [Sparkles, 'How signup works', 'Create a workspace with email & password. Trial starts immediately.'],
           [TimerReset, 'During the trial', 'Full product access with a countdown banner before day 7 ends.'],
-          [WalletCards, 'Choosing a plan', 'Pay Monthly, Silver, Gold, or Platinum via Razorpay. Access continues on success.'],
+          [WalletCards, 'Choosing a plan', 'Pay Monthly, Silver, Gold, or Platinum via Hyperswitch. Access continues on success.'],
           [ShieldAlert, "If you don’t pay", `App locks after trial. ${cfg?.graceDays || 3}-day grace after a paid period lapses. Data retained.`],
         ].map(([Icon, title, body]) => (
           <article key={title} className="g-svc-card">

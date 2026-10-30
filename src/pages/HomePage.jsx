@@ -15,7 +15,7 @@ const SERVICES = [
   { title: 'Inventory', body: 'Products, HSN/SAC, stock alerts and purchase bills for day-to-day operations.', icon: Package, color: '#a855f7' },
   { title: 'Cloud Tenancy', body: 'Each organisation is isolated in the database with secure login sessions.', icon: Cloud, color: '#eab308' },
   { title: 'Payments', body: 'Receipts, partial payments, recurring invoices and outstanding reports.', icon: Wallet, color: '#ec4899' },
-  { title: 'Trial & Plans', body: '7-day free trial, then Monthly / Silver / Gold / Platinum with Razorpay checkout.', icon: ShieldCheck, color: '#008b9b' },
+  { title: 'Trial & Plans', body: '7-day free trial, then Monthly / Silver / Gold / Platinum with Hyperswitch checkout.', icon: ShieldCheck, color: '#008b9b' },
 ];
 
 const HERO_PILLARS = [
@@ -79,7 +79,7 @@ export default function HomePage() {
               </Link>
             </div>
             <p className="g-hero-note">
-              Trusted workflow for MSMEs · Razorpay-ready billing · Cancel anytime after trial
+              Trusted workflow for MSMEs · Hyperswitch billing · Cancel anytime after trial
             </p>
           </div>
 
