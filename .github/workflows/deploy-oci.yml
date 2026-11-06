@@ -33,17 +33,23 @@ jobs:
         env:
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
           OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          # Secret is base64 of the OpenSSH private key (avoids paste/newline breakage)
-          printf '%s' "$OCI_SSH_KEY" | base64 -d > ~/.ssh/oci_deploy
+          # Accept raw OpenSSH key OR base64-encoded key
+          if printf '%s' "$OCI_SSH_KEY" | grep -q "BEGIN .*PRIVATE KEY"; then
+            printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_deploy
+          else
+            printf '%s' "$OCI_SSH_KEY" | tr -d '\r\n ' | base64 -d > ~/.ssh/oci_deploy
+          fi
           chmod 600 ~/.ssh/oci_deploy
+          # Normalize Windows line endings if present
+          sed -i 's/\r$//' ~/.ssh/oci_deploy
           ssh-keygen -lf ~/.ssh/oci_deploy
           ssh-keyscan -H "$OCI_HOST" >> ~/.ssh/known_hosts
-          # Quick auth check before rsync
           ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
-            "${{ secrets.OCI_USER }}@${OCI_HOST}" "echo ssh_ok"
+            "${OCI_USER}@${OCI_HOST}" "echo ssh_ok"
 
       - name: Upload dist + deploy script
         env:
