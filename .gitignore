@@ -48,3 +48,8 @@ docs-site/out/
 data/*.db
 data/*.db-*
 
+# Local OCI / CI deploy keys — never commit
+.deploy_oci
+.deploy_oci.pub
+billifi.nginx*
+

@@ -1,0 +1,61 @@
+name: Deploy to OCI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oci
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install & build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.OCI_SSH_KEY }}
+
+      - name: Trust OCI host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload dist + deploy script
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: |
+          rsync -az --delete \
+            -e "ssh -o IdentitiesOnly=yes" \
+            dist/ "${OCI_USER}@${OCI_HOST}:/home/ubuntu/Billifi/dist/"
+          rsync -az \
+            -e "ssh -o IdentitiesOnly=yes" \
+            scripts/oci-remote-deploy.sh "${OCI_USER}@${OCI_HOST}:/home/ubuntu/Billifi/scripts/oci-remote-deploy.sh"
+
+      - name: Pull code & restart on server
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+        run: |
+          ssh -o IdentitiesOnly=yes \
+            "${OCI_USER}@${OCI_HOST}" \
+            "chmod +x /home/ubuntu/Billifi/scripts/oci-remote-deploy.sh && bash /home/ubuntu/Billifi/scripts/oci-remote-deploy.sh"
