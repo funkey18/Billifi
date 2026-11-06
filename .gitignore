@@ -51,5 +51,6 @@ data/*.db-*
 # Local OCI / CI deploy keys — never commit
 .deploy_oci
 .deploy_oci.pub
+.deploy_oci.b64
 billifi.nginx*
 

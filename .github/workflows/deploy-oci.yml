@@ -29,15 +29,21 @@ jobs:
           npm ci
           npm run build
 
-      - name: Setup SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.OCI_SSH_KEY }}
-
-      - name: Trust OCI host key
+      - name: Setup SSH key
+        env:
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          OCI_HOST: ${{ secrets.OCI_HOST }}
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ secrets.OCI_HOST }}" >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          # Secret is base64 of the OpenSSH private key (avoids paste/newline breakage)
+          printf '%s' "$OCI_SSH_KEY" | base64 -d > ~/.ssh/oci_deploy
+          chmod 600 ~/.ssh/oci_deploy
+          ssh-keygen -lf ~/.ssh/oci_deploy
+          ssh-keyscan -H "$OCI_HOST" >> ~/.ssh/known_hosts
+          # Quick auth check before rsync
+          ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+            "${{ secrets.OCI_USER }}@${OCI_HOST}" "echo ssh_ok"
 
       - name: Upload dist + deploy script
         env:
@@ -45,10 +51,10 @@ jobs:
           OCI_USER: ${{ secrets.OCI_USER }}
         run: |
           rsync -az --delete \
-            -e "ssh -o IdentitiesOnly=yes" \
+            -e "ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes" \
             dist/ "${OCI_USER}@${OCI_HOST}:/home/ubuntu/Billifi/dist/"
           rsync -az \
-            -e "ssh -o IdentitiesOnly=yes" \
+            -e "ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes" \
             scripts/oci-remote-deploy.sh "${OCI_USER}@${OCI_HOST}:/home/ubuntu/Billifi/scripts/oci-remote-deploy.sh"
 
       - name: Pull code & restart on server
@@ -56,6 +62,6 @@ jobs:
           OCI_HOST: ${{ secrets.OCI_HOST }}
           OCI_USER: ${{ secrets.OCI_USER }}
         run: |
-          ssh -o IdentitiesOnly=yes \
+          ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes \
             "${OCI_USER}@${OCI_HOST}" \
             "chmod +x /home/ubuntu/Billifi/scripts/oci-remote-deploy.sh && bash /home/ubuntu/Billifi/scripts/oci-remote-deploy.sh"
