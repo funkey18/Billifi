@@ -122,11 +122,21 @@ function appPublicUrl() {
 
 export function paymentMode() {
   if (process.env.PAYMENT_MODE === 'mock') return 'mock';
-  const hsKey = process.env.HYPERSWITCH_API_KEY || '';
-  const hsPub = process.env.HYPERSWITCH_PUBLISHABLE_KEY || '';
-  if (hsKey && hsPub) return 'hyperswitch';
+
   const rzpKey = process.env.RAZORPAY_KEY_ID || '';
   const rzpSecret = process.env.RAZORPAY_KEY_SECRET || '';
+  const hsKey = process.env.HYPERSWITCH_API_KEY || '';
+  const hsPub = process.env.HYPERSWITCH_PUBLISHABLE_KEY || '';
+  const forced = (process.env.PAYMENT_MODE || '').toLowerCase();
+
+  // Prefer Razorpay when keys exist (or PAYMENT_MODE=razorpay).
+  // Hyperswitch only when explicitly forced, or when Razorpay is absent.
+  if (forced === 'razorpay' || (rzpKey && rzpSecret && forced !== 'hyperswitch')) {
+    if (rzpKey && rzpSecret) return 'razorpay';
+  }
+  if (forced === 'hyperswitch' || (hsKey && hsPub)) {
+    if (hsKey && hsPub) return 'hyperswitch';
+  }
   if (rzpKey && rzpSecret) return 'razorpay';
   return 'mock';
 }
@@ -578,9 +588,11 @@ export function publicBillingConfig() {
       perMonthInr: p.perMonthInr || null,
       priceInr: p.priceInr,
       badge: p.badge,
+      savingsInr: p.savingsInr || null,
       description: p.description,
       features: p.features,
       interval: p.interval,
+      intervalCount: p.intervalCount || 1,
     })),
   };
 }

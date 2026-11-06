@@ -30,7 +30,11 @@ DATA_DIR=/home/ubuntu/Billifi/data
 DATABASE_PATH=/home/ubuntu/Billifi/data/gst_multitenant.db
 ALLOWED_ORIGINS=http://137.23.53.90:8080
 APP_PUBLIC_URL=http://137.23.53.90:8080
+PAYMENT_MODE=razorpay
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
 ENV
+echo "NOTE: Fill RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET in .env (or let GitHub Actions sync them)."
 
 echo "==> PM2"
 sudo npm install -g pm2

@@ -63,6 +63,51 @@ jobs:
             -e "ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes" \
             scripts/oci-remote-deploy.sh "${OCI_USER}@${OCI_HOST}:/home/ubuntu/Billifi/scripts/oci-remote-deploy.sh"
 
+      - name: Sync Razorpay keys on server
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USER: ${{ secrets.OCI_USER }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+        run: |
+          if [ -z "${RAZORPAY_KEY_ID}" ] || [ -z "${RAZORPAY_KEY_SECRET}" ]; then
+            echo "::warning::RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET not set in GitHub Actions secrets. Server .env will keep existing values."
+            exit 0
+          fi
+          ssh -i ~/.ssh/oci_deploy -o IdentitiesOnly=yes \
+            "${OCI_USER}@${OCI_HOST}" \
+            env \
+              RAZORPAY_KEY_ID="$RAZORPAY_KEY_ID" \
+              RAZORPAY_KEY_SECRET="$RAZORPAY_KEY_SECRET" \
+              python3 - <<'PY'
+          from pathlib import Path
+          import os
+          path = Path("/home/ubuntu/Billifi/.env")
+          path.parent.mkdir(parents=True, exist_ok=True)
+          text = path.read_text() if path.exists() else ""
+          vals = {
+              "PAYMENT_MODE": "razorpay",
+              "RAZORPAY_KEY_ID": os.environ["RAZORPAY_KEY_ID"],
+              "RAZORPAY_KEY_SECRET": os.environ["RAZORPAY_KEY_SECRET"],
+          }
+          remaining = set(vals)
+          out = []
+          for line in text.splitlines():
+              if not line or line.lstrip().startswith("#") or "=" not in line:
+                  out.append(line)
+                  continue
+              key = line.split("=", 1)[0].strip()
+              if key in remaining:
+                  out.append(f"{key}={vals[key]}")
+                  remaining.remove(key)
+              else:
+                  out.append(line)
+          for key in sorted(remaining):
+              out.append(f"{key}={vals[key]}")
+          path.write_text("\n".join(out) + "\n")
+          print("razorpay_env_ok")
+          PY
+
       - name: Pull code & restart on server
         env:
           OCI_HOST: ${{ secrets.OCI_HOST }}

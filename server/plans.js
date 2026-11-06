@@ -1,10 +1,28 @@
-/** Public plan catalogue — amounts in paise (Hyperswitch / INR minor units) and display INR.
- *  Aligned with market GST-billing pricing (Vyapar Desktop-class tiers).
- *  Ref: https://vyaparapp.in/pricing
+/** Public plan catalogue — amounts in paise (INR minor units).
+ *  Three duration tiers; every plan includes the full feature set.
  */
 
 export const TRIAL_DAYS = 7;
 export const GRACE_DAYS = 3;
+
+/** Shared feature set for every paid plan */
+export const ALL_FEATURES = [
+  'Unlimited invoices & GST documents',
+  'Clients, products, inventory & purchases',
+  'GSTR-1 / GSTR-3B / GSTR-2B helpers',
+  'Expenses, receipts & recurring billing',
+  'Reports, PDF export & multi-business profiles',
+  'WhatsApp share for invoices',
+  'Import parties & products',
+  'Journal entries & account statements',
+  'Bill-wise profit / loss reports',
+  'TCS / TDS on invoices',
+  'Accountant access & CA sharing',
+  'Advanced party & stock reports',
+  'Import / export (Tally-friendly)',
+  'Secure multi-tenant cloud database',
+  'Priority email support',
+];
 
 export const PLANS = {
   monthly: {
@@ -12,104 +30,57 @@ export const PLANS = {
     name: 'Monthly',
     interval: 'month',
     intervalCount: 1,
-    priceInr: 499,
-    amountPaise: 49900,
-    label: '₹499',
+    priceInr: 199,
+    amountPaise: 19900,
+    label: '₹199',
     periodLabel: '/ month',
+    perMonthInr: 199,
     badge: null,
-    description: 'Full workspace, billed every month. Cancel anytime.',
-    features: [
-      'Unlimited invoices & GST documents',
-      'Clients, products, inventory & purchases',
-      'GSTR-1 / GSTR-3B / GSTR-2B helpers',
-      'Expenses, receipts & recurring billing',
-      'Reports, PDF export & multi-business profiles',
-      'Secure multi-tenant cloud database',
-      'Email support (business hours)',
-    ],
+    savingsInr: null,
+    description: 'Full BilliFi access, billed every month. Cancel anytime.',
+    features: ALL_FEATURES,
   },
-  silver: {
-    id: 'silver',
-    name: 'Silver',
+  yearly: {
+    id: 'yearly',
+    name: 'Yearly',
     interval: 'year',
     intervalCount: 1,
-    priceInr: 3799,
-    amountPaise: 379900,
-    label: '₹3,799',
+    priceInr: 1999,
+    amountPaise: 199900,
+    label: '₹1,999',
     periodLabel: '/ year',
-    perMonthInr: 317,
-    badge: null,
-    description: 'Perfect for getting started — billed yearly.',
-    features: [
-      'Everything in Monthly',
-      'Up to 3 business profiles',
-      'WhatsApp share for invoices',
-      'Import parties & products',
-      'Share with your CA',
-      'Annual invoice for accounts',
-      'Price locked for 12 months',
-    ],
-  },
-  gold: {
-    id: 'gold',
-    name: 'Gold',
-    interval: 'year',
-    intervalCount: 1,
-    priceInr: 4099,
-    amountPaise: 409900,
-    label: '₹4,099',
-    periodLabel: '/ year',
-    perMonthInr: 342,
+    perMonthInr: 167,
     badge: 'Most popular',
-    description: 'Best for small stores & growing MSMEs.',
-    features: [
-      'Everything in Silver',
-      'Up to 5 business profiles',
-      'Journal entries & account statements',
-      'Bill-wise profit / loss reports',
-      'TCS / TDS on invoices',
-      'Accountant access',
-      'Priority support queue',
-    ],
+    savingsInr: 389,
+    description: 'Same full features — pay once a year and save vs monthly.',
+    features: ALL_FEATURES,
   },
-  platinum: {
-    id: 'platinum',
-    name: 'Platinum',
+  three_year: {
+    id: 'three_year',
+    name: '3-Year',
     interval: 'year',
-    intervalCount: 1,
-    priceInr: 9999,
-    amountPaise: 999900,
-    label: '₹9,999',
-    periodLabel: '/ year',
-    perMonthInr: 833,
-    badge: 'For larger teams',
-    description: 'Unlimited scale with advanced tools & priority support.',
-    features: [
-      'Everything in Gold',
-      'Unlimited business profiles',
-      'Advanced party & stock reports',
-      'Marketing / growth tools access',
-      'Import / export (Tally-friendly)',
-      'Priority customer support',
-      'Best annual value for multi-outlet shops',
-    ],
+    intervalCount: 3,
+    priceInr: 3999,
+    amountPaise: 399900,
+    label: '₹3,999',
+    periodLabel: '/ 3 years',
+    perMonthInr: 111,
+    badge: 'Best value',
+    savingsInr: 3165,
+    description: 'Lock the lowest rate for three years with every feature included.',
+    features: ALL_FEATURES,
   },
 };
 
-/** @deprecated kept so older checkout links / DB rows still resolve */
-PLANS.yearly = {
-  ...PLANS.gold,
-  id: 'yearly',
-  name: 'Yearly (Gold)',
-  badge: null,
-  description: 'Legacy alias for Gold yearly — same price & features.',
-};
+/** Legacy IDs from older checkouts / DB rows still resolve via getPlan */
+PLANS.silver = { ...PLANS.yearly, id: 'silver', name: 'Silver (legacy)', badge: null };
+PLANS.gold = { ...PLANS.yearly, id: 'gold', name: 'Gold (legacy)', badge: null };
+PLANS.platinum = { ...PLANS.three_year, id: 'platinum', name: 'Platinum (legacy)', badge: null };
 
 export function getPlan(planId) {
   return PLANS[planId] || null;
 }
 
 export function listPlans() {
-  // Public catalogue order (exclude legacy yearly alias)
-  return [PLANS.monthly, PLANS.silver, PLANS.gold, PLANS.platinum];
+  return [PLANS.monthly, PLANS.yearly, PLANS.three_year];
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, FileText, Settings, Plus, Users, Package, BarChart3, Wallet, RefreshCw, Receipt, BookOpen, Moon, Sun, Download, X, ShoppingCart, ChevronDown, Building2, Pencil, HelpCircle, Search, Command, Bell, Calculator, HardDrive, Menu, Heart, LogOut, CreditCard } from 'lucide-react';
+import { Home, FileText, Settings, Plus, Users, Package, BarChart3, Wallet, RefreshCw, Receipt, BookOpen, Moon, Sun, Download, X, ShoppingCart, ChevronDown, Building2, Pencil, HelpCircle, Search, Command, Bell, Calculator, Menu, LogOut, CreditCard } from 'lucide-react';
 import { getAllProfiles, saveProfile, getEnabledModules, getAllBills, getAllProducts, getStockAlertSettings, getAllClients, runUpdateNow, getLockStatus } from './store';
 import { isModuleEnabled, getUpcomingFilings, countsAsSales, localToday, toLocalIsoDate, DOCS_URL } from './utils';
 import { clearSession, getStoredUser } from './auth';
@@ -1010,24 +1010,6 @@ function App() {
               <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
             <div className="nav-group-label">Workspace</div>
-            <button
-              type="button"
-              className={`nav-btn nav-btn-support${currentView === 'support' ? ' nav-btn-support-active' : ''}`}
-              onClick={() => setCurrentView('support')}
-              title="Who makes this app, and how to help"
-            >
-              <Heart size={18} />
-              <span>Support &amp; About</span>
-            </button>
-            <button
-              type="button"
-              className={`nav-btn ${currentView === 'controlpanel' ? 'nav-btn-active' : ''}`}
-              onClick={() => setCurrentView('controlpanel')}
-              title="Update, backup, restore, move to another PC"
-            >
-              <HardDrive size={18} />
-              <span>Control Panel</span>
-            </button>
             <button
               type="button"
               className={`nav-btn ${currentView === 'settings' ? 'nav-btn-active' : ''}`}
