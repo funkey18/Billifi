@@ -56,8 +56,8 @@ export default defineConfig({
         name: 'BilliFi',
         short_name: 'BilliFi',
         description: 'BilliFi — GST invoicing for Indian businesses. Tax invoices, GSTR-1 / GSTR-3B / GSTR-2B, TDS / TCS, multi-currency, multi-tenant cloud workspaces.',
-        theme_color: '#1e40af',
-        background_color: '#f8fafc',
+        theme_color: '#008b9b',
+        background_color: '#f7fbfd',
         display: 'standalone',
         // display_override gives Edge / Chrome the option to render in a
         // tighter "Window Controls Overlay" mode (the title bar disappears,

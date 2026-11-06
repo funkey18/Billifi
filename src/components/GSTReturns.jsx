@@ -4,6 +4,7 @@ import { getAllBills, getAllExpenses, getAllPurchases, getProfile } from '../sto
 import { formatCurrency, INVOICE_TYPES, getStateCode, formatDateGST, getFilingPeriod, hsnUqc, getFYOptions, belongsToProfile, toCsvLine, isCancelledBill, b2clThreshold, GST_PORTAL_RATES, setOffITC, splitLineTax, roundQty, placeOfSupplyLabel, countsAsSales, parseLocalDate } from '../utils';
 import { toast } from './Toast';
 import HelpButton from './HelpButton';
+import PageHeader from './PageHeader';
 
 const GST_TYPES = ['tax-invoice', 'credit-note'];
 // GSTR-1 Table 13 "nature of document" codes.
@@ -1486,9 +1487,11 @@ export default function GSTReturns() {
 
   return (
     <div className="dashboard-container">
-      {/* Header row: title + period selector + portal link */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-        <h1 className="page-title" style={{ margin: 0 }}>GST Returns</h1>
+      <PageHeader
+        icon="📋"
+        title="GST Returns"
+        subtitle="GSTR-1, GSTR-3B & GSTR-2B helpers"
+      >
         <HelpButton title="GST Returns — how to use" doc="gst-returns">
           <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
             <li><strong>Pick a period</strong> — Monthly / Quarterly (QRMP) / Full Year, then the specific month + year.</li>
@@ -1499,7 +1502,7 @@ export default function GSTReturns() {
             <li><strong>Mark Filed</strong> — after filing on the portal, click Mark Filed to keep the app's status in sync.</li>
           </ul>
         </HelpButton>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select className="form-input" value={filterMode} onChange={e => setFilterMode(e.target.value)} style={{ width: 'auto', minWidth: '120px' }}>
             <option value="month">Monthly</option>
             <option value="quarter">Quarterly (QRMP)</option>
@@ -1545,7 +1548,7 @@ export default function GSTReturns() {
         <a href="https://gst.gov.in" target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}>
           <ExternalLink size={14} /> GST Portal
         </a>
-      </div>
+      </PageHeader>
 
       {/* Warnings — collapsed by default, only errors show */}
       {warnings.filter(w => w.type === 'error').length > 0 && (

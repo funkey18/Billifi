@@ -3,7 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-route
 import App from './App.jsx';
 import AppLockGate from './components/AppLock.jsx';
 import SubscriptionGate from './components/SubscriptionGate.jsx';
-import { clearSession, fetchMe, getStoredUser } from './auth';
+import { fetchMe, getStoredUser } from './auth';
+import { PRODUCT_NAME } from './brand.js';
 import PublicLayout from './pages/PublicLayout.jsx';
 import HomePage from './pages/HomePage.jsx';
 import FeaturesPage from './pages/FeaturesPage.jsx';
@@ -31,8 +32,12 @@ function RequireAuth({ children }) {
 
   if (checking) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', fontFamily: 'system-ui' }}>
-        Checking secure session…
+      <div className="auth-boot">
+        <div className="auth-boot-card">
+          <div className="auth-boot-mark">B</div>
+          <p className="auth-boot-title">{PRODUCT_NAME}</p>
+          <p className="auth-boot-sub">Checking secure session…</p>
+        </div>
       </div>
     );
   }
@@ -41,60 +46,12 @@ function RequireAuth({ children }) {
 }
 
 function AppShell() {
-  const navigate = useNavigate();
-  const user = getStoredUser();
-
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch { /* ignore */ }
-    clearSession();
-    navigate('/login', { replace: true });
-  };
-
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', alignItems: 'center',
-        padding: '0.4rem 0.9rem',
-        background: 'rgba(0, 31, 63, 0.96)', color: '#e8f7f9',
-        fontSize: '0.8rem',
-        fontFamily: "'Poppins', system-ui, sans-serif",
-        borderBottom: '1px solid rgba(0, 139, 155, 0.35)',
-      }}>
-        <span>
-          {user?.tenant?.name || 'Workspace'} · {user?.email}
-        </span>
-        <button
-          type="button"
-          onClick={() => navigate('/billing')}
-          style={{
-            border: '1px solid #008b9b', background: '#008b9b', color: '#fff',
-            borderRadius: 6, padding: '0.25rem 0.65rem', cursor: 'pointer',
-            fontFamily: 'inherit', fontWeight: 600,
-          }}
-        >
-          Billing
-        </button>
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            border: '1px solid rgba(255,255,255,0.35)', background: 'transparent', color: '#fff',
-            borderRadius: 6, padding: '0.25rem 0.65rem', cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          Sign out
-        </button>
-      </div>
-      <SubscriptionGate>
-        <AppLockGate>
-          <App />
-        </AppLockGate>
-      </SubscriptionGate>
-    </div>
+    <SubscriptionGate>
+      <AppLockGate>
+        <App />
+      </AppLockGate>
+    </SubscriptionGate>
   );
 }
 

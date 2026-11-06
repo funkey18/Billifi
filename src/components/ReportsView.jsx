@@ -4,6 +4,7 @@ import { getAllBills, getAllExpenses, getProfile } from '../store';
 import { formatCurrency, getFYOptions, belongsToProfile, isCancelledBill, salesSign, countsAsSales, calculateLineItemTax, roundQty, parseLocalDate, amountDue } from '../utils';
 import { toast } from './Toast';
 import HelpButton from './HelpButton';
+import PageHeader from './PageHeader';
 import PartyOutstandingReport from './PartyOutstandingReport';
 import StockReport from './StockReport';
 import TableExport from './TableExport';
@@ -184,23 +185,21 @@ export default function ReportsView() {
 
   return (
     <div className="dashboard-container">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div>
-            <h1 className="page-title">Reports</h1>
-            <p className="page-subtitle">Financial reports and receivables analysis</p>
-          </div>
-          <HelpButton title="Reports — how to use" doc="reports">
-            <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
-              <li><strong>Profit &amp; Loss</strong>: sales against expenses, without GST, by year or month.</li>
-              <li><strong>Outstanding &amp; Aging</strong>: who owes you and how late, in 30-day groups.</li>
-              <li><strong>Party Outstanding</strong>: what each party owes, month by month (April-March or January-December), with totals. Print or CSV.</li>
-              <li><strong>Client Analytics</strong> and <strong>Product Performance</strong>: your best clients and items.</li>
-              <li>Only real sales count: estimates, challans and cancelled invoices are left out, credit notes are subtracted.</li>
-            </ul>
-          </HelpButton>
-        </div>
-      </div>
+      <PageHeader
+        icon="📊"
+        title="Reports"
+        subtitle="Financial reports and receivables analysis"
+      >
+        <HelpButton title="Reports — how to use" doc="reports">
+          <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
+            <li><strong>Profit &amp; Loss</strong>: sales against expenses, without GST, by year or month.</li>
+            <li><strong>Outstanding &amp; Aging</strong>: who owes you and how late, in 30-day groups.</li>
+            <li><strong>Party Outstanding</strong>: what each party owes, month by month (April-March or January-December), with totals. Print or CSV.</li>
+            <li><strong>Client Analytics</strong> and <strong>Product Performance</strong>: your best clients and items.</li>
+            <li>Only real sales count: estimates, challans and cancelled invoices are left out, credit notes are subtracted.</li>
+          </ul>
+        </HelpButton>
+      </PageHeader>
 
       {/* Tab Selector — v1.9.5 adds Client + Product tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>

@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
-import { Home, FileText, Settings, Plus, Users, Package, BarChart3, Wallet, RefreshCw, Receipt, BookOpen, Moon, Sun, Download, X, ShoppingCart, ChevronDown, Building2, Pencil, HelpCircle, Search, Command, Bell, Calculator, HardDrive, Menu, Heart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Home, FileText, Settings, Plus, Users, Package, BarChart3, Wallet, RefreshCw, Receipt, BookOpen, Moon, Sun, Download, X, ShoppingCart, ChevronDown, Building2, Pencil, HelpCircle, Search, Command, Bell, Calculator, HardDrive, Menu, Heart, LogOut, CreditCard } from 'lucide-react';
 import { getAllProfiles, saveProfile, getEnabledModules, getAllBills, getAllProducts, getStockAlertSettings, getAllClients, runUpdateNow, getLockStatus } from './store';
 import { isModuleEnabled, getUpcomingFilings, countsAsSales, localToday, toLocalIsoDate, DOCS_URL } from './utils';
+import { clearSession, getStoredUser } from './auth';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from './brand';
 // v1.10.4 — Route-level lazy loading. Prior App.jsx synchronously
 // imported all 12 views (~15k LOC combined), so a first-paint on
 // Dashboard downloaded and parsed GSTReturns (1952), InvoiceGenerator
@@ -60,10 +63,20 @@ function ViewLoading() {
 }
 
 function App() {
+  const navigate = useNavigate();
+  const authUser = getStoredUser();
   // v1.9.3 — Setup Wizard shown on first-run (before onboardingComplete = true)
   const [showWizard, setShowWizard] = useState(() => {
     try { return !getPrintSettings().onboardingComplete; } catch { return false; }
   });
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch { /* ignore */ }
+    clearSession();
+    navigate('/login', { replace: true });
+  };
   const [currentView, setCurrentView] = useState(() => {
     // PWA manifest "shortcuts" deep-link in via ?view=X (e.g. right-clicking
     // the pinned taskbar icon → "New Invoice" opens /?view=new). Honour that
@@ -525,22 +538,72 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentView, JSON.stringify(enabledModules)]);
 
-  const navItems = [
-    { id: 'dashboard', icon: Home, label: 'Dashboard', module: 'dashboard' },
-    { id: 'new', icon: Plus, label: 'New Invoice', onClick: handleNewInvoice, module: 'invoicing' },
-    { id: 'clients', icon: Users, label: 'Clients', module: 'clients' },
-    { id: 'inventory', icon: Package, label: 'Products', module: 'inventory' },
-    { id: 'expenses', icon: Wallet, label: 'Expenses', module: 'expenses' },
-    { id: 'purchases', icon: ShoppingCart, label: 'Purchases', module: 'purchases' },
-    { id: 'recurring', icon: RefreshCw, label: 'Recurring', module: 'recurring' },
-    { id: 'receipts', icon: Receipt, label: 'Receipts', module: 'receipts' },
-    { id: 'reports', icon: BarChart3, label: 'Reports', module: 'reports' },
-    { id: 'filing', icon: BookOpen, label: 'GST Returns', module: 'gstReturns' },
-    { id: 'incometax', icon: Calculator, label: 'Income Tax', module: 'incomeTax' },
-    // v1.10.75 - opens the online documentation, which covers every screen
-    // and stays current; the old built-in guide had fallen far behind.
-    { id: 'guide', icon: HelpCircle, label: 'User Guide', module: 'dashboard', onClick: openDocs }, // gated by dashboard so it's always available
-  ].filter(item => showIfModule(item.module));
+  // Grouped sidebar — modules still gate each item so the menu stays
+  // personal to this workspace (enabled features + region). Empty groups hide.
+  const navGroups = [
+    {
+      id: 'overview',
+      label: null,
+      items: [
+        { id: 'dashboard', icon: Home, label: 'Dashboard', module: 'dashboard' },
+      ],
+    },
+    {
+      id: 'sales',
+      label: 'Sales',
+      items: [
+        { id: 'new', icon: Plus, label: 'New Invoice', onClick: handleNewInvoice, module: 'invoicing' },
+        { id: 'clients', icon: Users, label: 'Clients', module: 'clients' },
+        { id: 'recurring', icon: RefreshCw, label: 'Recurring', module: 'recurring' },
+        { id: 'receipts', icon: Receipt, label: 'Receipts', module: 'receipts' },
+      ],
+    },
+    {
+      id: 'catalog',
+      label: 'Catalog',
+      items: [
+        { id: 'inventory', icon: Package, label: 'Products', module: 'inventory' },
+      ],
+    },
+    {
+      id: 'purchases',
+      label: 'Purchases',
+      items: [
+        { id: 'expenses', icon: Wallet, label: 'Expenses', module: 'expenses' },
+        { id: 'purchases', icon: ShoppingCart, label: 'Purchases', module: 'purchases' },
+      ],
+    },
+    {
+      id: 'compliance',
+      label: 'Compliance',
+      items: [
+        { id: 'filing', icon: BookOpen, label: 'GST Returns', module: 'gstReturns' },
+        { id: 'incometax', icon: Calculator, label: 'Income Tax', module: 'incomeTax' },
+      ],
+    },
+    {
+      id: 'insights',
+      label: 'Insights',
+      items: [
+        { id: 'reports', icon: BarChart3, label: 'Reports', module: 'reports' },
+      ],
+    },
+    {
+      id: 'help',
+      label: null,
+      items: [
+        // Opens online docs; always available (gated by dashboard module).
+        { id: 'guide', icon: HelpCircle, label: 'User Guide', module: 'dashboard', onClick: openDocs },
+      ],
+    },
+  ]
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => showIfModule(item.module)),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const navItems = navGroups.flatMap((g) => g.items);
 
   // Command palette actions — declared here (not earlier) because the deps
   // array references `navItems` and `handleNewInvoice`, which are consts.
@@ -811,18 +874,16 @@ function App() {
           aria-label="Open menu" aria-expanded={navOpen}>
           <Menu size={22} />
         </button>
-        <span className="mobile-topbar-title">BilliFi</span>
+        <span className="mobile-topbar-title">{PRODUCT_NAME}</span>
         <span className="mobile-topbar-business">{profile?.businessName || ''}</span>
       </div>
       {navOpen && <div className="sidebar-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />}
       <div className={`sidebar${navOpen ? ' sidebar-open' : ''}`} onClick={closeNavAfterPick}>
         <div className="sidebar-brand">
-          <div className="sidebar-logo">
-            <FileText size={22} />
-          </div>
+          <div className="sidebar-logo" aria-hidden="true">B</div>
           <div>
-            <h2 className="sidebar-title">BilliFi</h2>
-            <p className="sidebar-subtitle">GST billing for India</p>
+            <h2 className="sidebar-title">{PRODUCT_NAME}</h2>
+            <p className="sidebar-subtitle">{PRODUCT_TAGLINE}</p>
           </div>
           {/* Auto-hide as a ☰ button (was a text checkbox): pressed = the menu
               shrinks to icons and opens when pointed at. */}
@@ -876,21 +937,27 @@ function App() {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              className={`nav-btn ${currentView === item.id ? 'nav-btn-active' : ''}`}
-              onClick={item.onClick || (() => setCurrentView(item.id))}
-            >
-              <item.icon size={18} /> {item.label}
-            </button>
+          {navGroups.map((group) => (
+            <div key={group.id} className="nav-group">
+              {group.label && <div className="nav-group-label">{group.label}</div>}
+              {group.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`nav-btn ${currentView === item.id ? 'nav-btn-active' : ''}`}
+                  onClick={item.onClick || (() => setCurrentView(item.id))}
+                >
+                  <item.icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            {/* Update-available banner — only shows when GitHub has a newer version
-                AND the user hasn't already dismissed THIS specific version. New
-                releases re-show the banner. Click to view notes + update. */}
+
+          <div className="sidebar-tools">
             {updateBannerVisible && (
               <button
+                type="button"
                 className="nav-btn"
                 onClick={() => setShowUpdateModal(true)}
                 title={`v${updateInfo.latest} is available`}
@@ -913,17 +980,15 @@ function App() {
                 }} />
               </button>
             )}
-            {/* Notification bell — opens a popover listing overdue / due-soon
-                invoices, GST filing deadlines, and low-stock items. Each row
-                is a single click away from the page that fixes it. */}
             <button
+              type="button"
               className="nav-btn"
               onClick={() => setShowNotifs(s => !s)}
               title="Notifications"
               style={{ position: 'relative' }}
             >
               <Bell size={18} />
-              Notifications
+              <span>Notifications</span>
               {notifTotal > 0 && (
                 <span className="nav-badge" style={{
                   position: 'absolute', top: '8px', right: '12px',
@@ -934,36 +999,43 @@ function App() {
                 }}>{notifTotal > 99 ? '99+' : notifTotal}</span>
               )}
             </button>
-            {/* v1.10.80 (#98) - only when a PIN is set. */}
             <LockButton className="nav-btn" label="Lock app" />
             <button
+              type="button"
               className="nav-btn"
               onClick={() => setDarkMode(!darkMode)}
               title={darkMode ? 'Light Mode' : 'Dark Mode'}
             >
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-              {darkMode ? 'Light Mode' : 'Dark Mode'}
+              <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </button>
+            <div className="nav-group-label">Workspace</div>
             <button
+              type="button"
               className={`nav-btn nav-btn-support${currentView === 'support' ? ' nav-btn-support-active' : ''}`}
               onClick={() => setCurrentView('support')}
               title="Who makes this app, and how to help"
             >
-              <Heart size={18} /> Support &amp; About
+              <Heart size={18} />
+              <span>Support &amp; About</span>
             </button>
             <button
+              type="button"
               className={`nav-btn ${currentView === 'controlpanel' ? 'nav-btn-active' : ''}`}
               onClick={() => setCurrentView('controlpanel')}
               title="Update, backup, restore, move to another PC"
             >
-              <HardDrive size={18} /> Control Panel
+              <HardDrive size={18} />
+              <span>Control Panel</span>
             </button>
             <button
+              type="button"
               className={`nav-btn ${currentView === 'settings' ? 'nav-btn-active' : ''}`}
               onClick={() => setCurrentView('settings')}
               style={updateBannerVisible ? { position: 'relative' } : undefined}
             >
-              <Settings size={18} /> Settings
+              <Settings size={18} />
+              <span>Settings</span>
               {updateBannerVisible && (
                 <span className="nav-badge" style={{
                   position: 'absolute', top: '8px', right: '12px',
@@ -972,6 +1044,34 @@ function App() {
                 }} title="Update available" />
               )}
             </button>
+
+            <div className="sidebar-account">
+              <div className="sidebar-account-meta">
+                <span className="sidebar-account-name">{authUser?.tenant?.name || profile?.businessName || 'Workspace'}</span>
+                <span className="sidebar-account-email">{authUser?.email || ''}</span>
+              </div>
+              <div className="sidebar-account-actions">
+                <button
+                  type="button"
+                  className="sidebar-account-btn"
+                  onClick={() => navigate('/billing')}
+                  title="Plans & billing"
+                >
+                  <CreditCard size={14} />
+                  <span>Billing</span>
+                </button>
+                <button
+                  type="button"
+                  className="sidebar-account-btn"
+                  onClick={handleLogout}
+                  title="Sign out"
+                >
+                  <LogOut size={14} />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            </div>
+
             <div className={`server-status server-status-${serverStatus}`}>
               <span className="server-status-dot" />
               {serverStatus === 'online' ? 'App Ready' : serverStatus === 'offline' ? 'App Not Running' : 'Connecting...'}

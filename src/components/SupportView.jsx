@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Heart, Star, Share2, Bug, Copy, Check, Mail, Phone, Code, Wrench, Database, LifeBuoy, Bot, Smartphone, Workflow, Users } from 'lucide-react';
 import { toast } from './Toast';
+import PageHeader from './PageHeader';
 import { getProfile } from '../store';
 import { upiNote } from '../utils/supporters';
 import useSupporters from './useSupporters';
@@ -76,12 +77,11 @@ export default function SupportView() {
 
   return (
     <div className="dashboard-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Support &amp; About</h1>
-          <p className="page-subtitle">Who makes {PRODUCT_NAME}, and how you can help it grow</p>
-        </div>
-      </div>
+      <PageHeader
+        icon="❤️"
+        title="Support & About"
+        subtitle={`Who makes ${PRODUCT_NAME}, and how you can help it grow`}
+      />
 
       <div className="glass-panel" style={{ ...card, marginBottom: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
         <Heart size={28} style={{ color: '#e11d48', flexShrink: 0, marginTop: 2 }} />

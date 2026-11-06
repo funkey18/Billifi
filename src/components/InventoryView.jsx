@@ -5,6 +5,7 @@ import { getAllUnits, getCountryConfig, formatCurrency } from '../utils';
 import { toast } from './Toast';
 import { confirmAction } from './ConfirmModal';
 import HelpButton from './HelpButton';
+import PageHeader from './PageHeader';
 import ProductBulkEdit from './ProductBulkEdit';
 import TableExport from './TableExport';
 
@@ -213,35 +214,31 @@ export default function InventoryView() {
 
   return (
     <div className="dashboard-container">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div>
-            <h1 className="page-title">Products</h1>
-            <p className="page-subtitle">Manage your products and services catalog</p>
-          </div>
-          <HelpButton title="Products — how to use" doc="products">
-            <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
-              <li><strong>Add Product</strong>: name, HSN/SAC, purchase and selling price, GST %, unit and stock. Typing the name on an invoice fills the rest in.</li>
-              <li><strong>Stock</strong> goes down when you save an invoice and up when you save a purchase bill.</li>
-              <li><strong>Import CSV</strong>: columns <code>name, hsn, rate, gst%, unit, stock</code>.</li>
-              <li><strong>Low stock</strong> shows in amber, none in red. Set the level in Settings → Low-stock alerts.</li>
-            </ul>
-          </HelpButton>
-        </div>
-        <div className="flex gap-2">
-          <input type="file" accept=".csv" ref={csvInputRef} style={{ display: 'none' }} onChange={handleCSVImport} />
-          <button className="btn btn-secondary" onClick={() => csvInputRef.current?.click()}>
-            <Upload size={16} /> Import CSV
-          </button>
-          <button className="btn btn-secondary" onClick={() => setBulkEdit(true)} disabled={!products.length || bulkEdit}
-            title="Edit name, HSN, prices, GST %, unit and stock of many products at once">
-            <Table2 size={16} /> Bulk edit
-          </button>
-          <button className="btn btn-primary" onClick={openAdd}>
-            <Plus size={18} /> Add Product
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon="📦"
+        title="Products"
+        subtitle="Manage your products and services catalog"
+      >
+        <HelpButton title="Products — how to use" doc="products">
+          <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
+            <li><strong>Add Product</strong>: name, HSN/SAC, purchase and selling price, GST %, unit and stock. Typing the name on an invoice fills the rest in.</li>
+            <li><strong>Stock</strong> goes down when you save an invoice and up when you save a purchase bill.</li>
+            <li><strong>Import CSV</strong>: columns <code>name, hsn, rate, gst%, unit, stock</code>.</li>
+            <li><strong>Low stock</strong> shows in amber, none in red. Set the level in Settings → Low-stock alerts.</li>
+          </ul>
+        </HelpButton>
+        <input type="file" accept=".csv" ref={csvInputRef} style={{ display: 'none' }} onChange={handleCSVImport} />
+        <button className="btn btn-secondary" onClick={() => csvInputRef.current?.click()}>
+          <Upload size={16} /> Import CSV
+        </button>
+        <button className="btn btn-secondary" onClick={() => setBulkEdit(true)} disabled={!products.length || bulkEdit}
+          title="Edit name, HSN, prices, GST %, unit and stock of many products at once">
+          <Table2 size={16} /> Bulk edit
+        </button>
+        <button className="btn btn-primary" onClick={openAdd}>
+          <Plus size={18} /> Add Product
+        </button>
+      </PageHeader>
 
       {/* Search */}
       <div className="glass-panel p-4 mb-6">

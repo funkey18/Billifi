@@ -38,11 +38,11 @@ export default function SubscriptionGate({ children }) {
 
   if (loading) {
     return (
-      <div style={{
-        minHeight: '60vh', display: 'grid', placeItems: 'center',
-        fontFamily: "'Poppins', system-ui, sans-serif", color: '#001f3f', background: '#f7fbfd',
-      }}>
-        Checking subscription…
+      <div className="auth-boot">
+        <div className="auth-boot-card">
+          <div className="auth-boot-mark">B</div>
+          <p className="auth-boot-sub">Checking subscription…</p>
+        </div>
       </div>
     );
   }
@@ -57,7 +57,7 @@ export default function SubscriptionGate({ children }) {
         <div style={{
           background: ent.reason === 'past_due' ? '#7f1d1d' : '#001f3f',
           color: '#fff',
-          padding: '0.5rem 0.95rem',
+          padding: '0.55rem 1rem',
           display: 'flex',
           justifyContent: 'space-between',
           gap: '0.75rem',
@@ -74,7 +74,8 @@ export default function SubscriptionGate({ children }) {
           </span>
           <Link to="/billing" style={{
             color: '#fff', fontWeight: 700, background: '#008b9b',
-            padding: '0.25rem 0.7rem', borderRadius: 6, textDecoration: 'none',
+            padding: '0.35rem 0.9rem', borderRadius: 999, textDecoration: 'none',
+            boxShadow: '0 4px 12px rgba(0, 139, 155, 0.35)',
           }}>
             {ent.reason === 'trial' ? 'Choose a plan' : 'Pay now'}
           </Link>

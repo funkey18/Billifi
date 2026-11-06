@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Users, Search, FileText, ChevronDown, ChevronUp, Trash2, X, MessageCircle, Mail, Plus, Edit3, Copy, Upload, Download } from 'lucide-react';
 import HelpButton from './HelpButton';
+import PageHeader from './PageHeader';
 import { getAllClients, getAllBills, deleteClient, saveClient, deleteBill, saveBill, getProfile, deleteReceipt, applyStockChanges, trashSavedPdf } from '../store';
 import { formatCurrency, INVOICE_TYPES, markPaidPatch, markUnpaidPatch, salesSign, countsAsSales, isCancelledBill, amountDue, localToday, parseLocalDate, appliedStock, stockDelta } from '../utils';
 import { getPrintSettings } from '../utils/printSettings';
@@ -753,36 +754,32 @@ export default function ClientsView({ onEdit, onDuplicate, onNew }) {
 
   return (
     <div className="dashboard-container">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div>
-            <h1 className="page-title">Clients</h1>
-            <p className="page-subtitle">Client-wise invoice ledger and outstanding</p>
-          </div>
-          <HelpButton title="Clients — how to use" doc="clients">
-            <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
-              <li><strong>Click a client name</strong> to see every invoice, payment, and credit note in one place.</li>
-              <li><strong>Statement PDF</strong> — a full account ledger with running balance. Send it when a client disputes a bill.</li>
-              <li><strong>Aging PDF</strong> — outstanding invoices bucketed by 0-30 / 31-60 / 61-90 / 90+ days. Use it for collection calls.</li>
-              <li><strong>Aging strip</strong> — the same buckets inline so you can see who's slow to pay at a glance.</li>
-              <li><strong>Import CSV</strong> — bulk-load clients from a spreadsheet (columns: name, address, state, gstin, email, phone). To back up clients, use Settings → Data Management → Export Backup.</li>
-              <li><strong>WhatsApp / Email</strong> — quick outreach without leaving the app.</li>
-            </ul>
-          </HelpButton>
-        </div>
-        <div className="flex gap-2">
-          <input type="file" accept=".csv" ref={csvInputRef} style={{ display: 'none' }} onChange={handleCSVImport} />
-          <button className="btn btn-secondary" onClick={() => csvInputRef.current?.click()}>
-            <Upload size={16} /> Import CSV
-          </button>
-          <button className="btn btn-secondary" onClick={() => openAddClient()}>
-            <Plus size={18} /> Add Client
-          </button>
-          <button className="btn btn-primary" onClick={onNew}>
-            <FileText size={18} /> New Invoice
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon="👥"
+        title="Clients"
+        subtitle="Client-wise invoice ledger and outstanding"
+      >
+        <HelpButton title="Clients — how to use" doc="clients">
+          <ul style={{ paddingLeft: '1.1rem', margin: 0 }}>
+            <li><strong>Click a client name</strong> to see every invoice, payment, and credit note in one place.</li>
+            <li><strong>Statement PDF</strong> — a full account ledger with running balance. Send it when a client disputes a bill.</li>
+            <li><strong>Aging PDF</strong> — outstanding invoices bucketed by 0-30 / 31-60 / 61-90 / 90+ days. Use it for collection calls.</li>
+            <li><strong>Aging strip</strong> — the same buckets inline so you can see who's slow to pay at a glance.</li>
+            <li><strong>Import CSV</strong> — bulk-load clients from a spreadsheet (columns: name, address, state, gstin, email, phone). To back up clients, use Settings → Data Management → Export Backup.</li>
+            <li><strong>WhatsApp / Email</strong> — quick outreach without leaving the app.</li>
+          </ul>
+        </HelpButton>
+        <input type="file" accept=".csv" ref={csvInputRef} style={{ display: 'none' }} onChange={handleCSVImport} />
+        <button className="btn btn-secondary" onClick={() => csvInputRef.current?.click()}>
+          <Upload size={16} /> Import CSV
+        </button>
+        <button className="btn btn-secondary" onClick={() => openAddClient()}>
+          <Plus size={18} /> Add Client
+        </button>
+        <button className="btn btn-primary" onClick={onNew}>
+          <FileText size={18} /> New Invoice
+        </button>
+      </PageHeader>
 
       {/* Add/Edit Client Modal */}
       <ClientModal show={showForm} onClose={closeForm} onSave={handleModalSave} client={modalClient} isEditing={!!editingClientId} defaultCountry={profileCountry} />
