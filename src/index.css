@@ -219,6 +219,15 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: 'Poppins', system-ui, sans-serif;
   background: var(--bg);
@@ -226,12 +235,30 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  position: relative;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
 }
 
 /* ========= Layout ========= */
 .app-layout {
   display: flex;
   height: 100vh;
+  max-width: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -607,10 +634,34 @@ body {
     background: rgba(15,23,42,0.55);
   }
   /* Two classes so this outranks the base .main-content padding further down. */
-  .app-layout > .main-content { padding: calc(52px + 1rem) 1rem 1.5rem; }
+  .app-layout > .main-content {
+    padding: calc(52px + 1rem + env(safe-area-inset-top, 0px)) 1rem max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
   .app-layout .settings-savebar { left: 0; } /* the sidebar is off-screen on phones */
   .app-layout .settings-bar { top: -1rem; } /* just under the fixed mobile header; two classes to outrank the base rule below */
-  .pwa-install-banner { top: 52px; }
+  .pwa-install-banner { top: calc(52px + env(safe-area-inset-top, 0px)); }
+  .mobile-topbar {
+    height: calc(52px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .sidebar-close-mobile { display: flex !important; }
+}
+
+body.app-nav-lock { overflow: hidden; }
+
+.sidebar-close-mobile {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 .sidebar::-webkit-scrollbar { width: 10px; }
 .sidebar::-webkit-scrollbar-thumb {
@@ -881,6 +932,7 @@ body {
 .main-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
@@ -1238,11 +1290,15 @@ textarea.form-input { resize: vertical; min-height: 60px; }
 
 .table-header h3 { margin: 0; font-size: 1rem; }
 
-/* v1.10.33 — Scroll container gets a fade at the right edge so
-   users know there's more table off-screen on narrow viewports. */
+/* Scroll stays inside this box — never pushes the page sideways. */
 .table-scroll {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
 }
 
 .data-table {
@@ -3032,6 +3088,221 @@ kbd {
 .grid { display: grid; }
 .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .options-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1024px) {
+  .main-content { padding: 1.35rem 1.25rem; max-width: 100%; }
+  .page-title { font-size: 1.35rem; }
+}
+
+/* App-like phone shell: nothing escapes the viewport horizontally */
+@media (max-width: 768px) {
+  .app-layout,
+  .main-content,
+  .dashboard-container,
+  .settings-container,
+  .glass-panel,
+  .page-header,
+  .filters-bar,
+  .generator-toolbar,
+  .generator-container,
+  .split-view,
+  .editor-pane,
+  .split-view-focus .editor-pane,
+  .preview-pane,
+  .invoice-editor,
+  .invoice-split {
+    max-width: 100% !important;
+  }
+
+  .editor-pane,
+  .preview-pane {
+    overflow-x: hidden;
+    padding-right: 0;
+  }
+
+  .main-content > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .table-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Wide tables stay inside their scroller; page never shifts sideways */
+  .data-table {
+    min-width: 640px !important;
+  }
+
+  .inv-signature,
+  .inv-sig-line {
+    min-width: 0;
+    width: 100%;
+    max-width: 160px;
+  }
+
+  .settings-bar,
+  .settings-jumpnav {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sidebar-account-email,
+  .sidebar-account-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .sidebar-account {
+    max-width: 100%;
+  }
+
+  .sidebar-account-actions {
+    flex-wrap: wrap;
+  }
+
+  .sidebar-account-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .pwa-install-banner {
+    left: 0 !important;
+    right: 0 !important;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid,
+  .stats-grid-4,
+  .grid-cols-2,
+  .grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+  .stat-card { padding: 1rem; }
+  .stat-value { font-size: 1.25rem; }
+  .search-box { min-width: 0 !important; flex: 1 1 100%; width: 100%; }
+  .filter-select,
+  .filter-date {
+    min-width: 0 !important;
+    width: 100%;
+    flex: 1 1 100%;
+  }
+  .filters-bar {
+    padding: 0.65rem 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .line-item-field {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+    width: 100%;
+  }
+  .line-item-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .table-scroll {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .type-selector { gap: 0.35rem; }
+  .type-chip { padding: 0.4rem 0.75rem; font-size: 0.75rem; }
+  .page-header {
+    padding: 0.9rem 1rem;
+    gap: 0.75rem;
+  }
+  .page-header-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+  .page-header-actions > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .page-title { font-size: 1.2rem; }
+  .generator-toolbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .generator-toolbar > * {
+    min-width: 0;
+  }
+  .modal-overlay {
+    padding: 0.5rem;
+    align-items: flex-end;
+  }
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    max-height: min(92vh, 100%);
+    border-radius: 16px 16px 0 0;
+  }
+  .btn, .pub-btn, .g-btn {
+    max-width: 100%;
+  }
+}
+
+.sub-gate-banner {
+  background: #001f3f;
+  color: #fff;
+  padding: 0.55rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  font-family: 'Poppins', system-ui, sans-serif;
+  border-bottom: 2px solid #008b9b;
+}
+.sub-gate-banner.past-due {
+  background: #7f1d1d;
+  border-bottom: none;
+}
+.sub-gate-banner a {
+  color: #fff;
+  font-weight: 700;
+  background: #008b9b;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 139, 155, 0.35);
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .sub-gate-banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    padding: 0.75rem 1rem;
+  }
+  .sub-gate-banner a {
+    text-align: center;
+    width: 100%;
+  }
+}
 
 /* ========= Invoice Type Selector ========= */
 .type-selector {

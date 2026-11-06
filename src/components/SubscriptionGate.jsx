@@ -54,29 +54,13 @@ export default function SubscriptionGate({ children }) {
   return (
     <>
       {ent && (ent.reason === 'trial' || ent.reason === 'past_due') && (
-        <div style={{
-          background: ent.reason === 'past_due' ? '#7f1d1d' : '#001f3f',
-          color: '#fff',
-          padding: '0.55rem 1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: '0.75rem',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          fontSize: '0.85rem',
-          fontFamily: "'Poppins', system-ui, sans-serif",
-          borderBottom: ent.reason === 'past_due' ? undefined : '2px solid #008b9b',
-        }}>
+        <div className={`sub-gate-banner${ent.reason === 'past_due' ? ' past-due' : ''}`}>
           <span>
             {ent.reason === 'trial'
               ? `Free trial · ${ent.daysLeft} day(s) left. Subscribe anytime to keep uninterrupted access.`
               : `Payment past due · ${ent.daysLeft} day(s) of grace left, then the workspace locks.`}
           </span>
-          <Link to="/billing" style={{
-            color: '#fff', fontWeight: 700, background: '#008b9b',
-            padding: '0.35rem 0.9rem', borderRadius: 999, textDecoration: 'none',
-            boxShadow: '0 4px 12px rgba(0, 139, 155, 0.35)',
-          }}>
+          <Link to="/billing">
             {ent.reason === 'trial' ? 'Choose a plan' : 'Pay now'}
           </Link>
         </div>

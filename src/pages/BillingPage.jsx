@@ -366,12 +366,12 @@ export default function BillingPage({ forced = false }) {
 
           {checkout?.mode === 'hyperswitch' && (
             <div className="bill-panel" style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: '0.75rem' }}>
-                <h3 style={{ margin: 0 }}>Pay {checkout.plan?.label} — {checkout.plan?.name}</h3>
-                <button type="button" className="pub-btn pub-btn-ghost" onClick={closeCheckout} disabled={paying}>
-                  Cancel
-                </button>
-              </div>
+            <div className="bill-checkout-head">
+              <h3 style={{ margin: 0 }}>Pay {checkout.plan?.label} — {checkout.plan?.name}</h3>
+              <button type="button" className="pub-btn pub-btn-ghost" onClick={closeCheckout} disabled={paying}>
+                Cancel
+              </button>
+            </div>
               <form onSubmit={confirmHyperswitch}>
                 <div id="hyperswitch-unified-checkout" style={{ minHeight: 180 }} />
                 <button
@@ -431,7 +431,7 @@ export default function BillingPage({ forced = false }) {
                 <h2>Feature comparison</h2>
                 <p>Every duration unlocks the complete BilliFi workspace — pick how long you want to pay for.</p>
               </div>
-              <div className="bill-compare-wrap">
+              <div className="bill-compare-wrap bill-compare-desktop">
                 <table className="bill-compare-table">
                   <thead>
                     <tr>
@@ -461,6 +461,16 @@ export default function BillingPage({ forced = false }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="bill-compare-mobile">
+                <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--g-muted)' }}>
+                  Included in Monthly, Yearly, and 3-Year:
+                </p>
+                <ul>
+                  {comparisonFeatures.map((feature) => (
+                    <li key={feature}><Check size={15} /> {feature}</li>
+                  ))}
+                </ul>
               </div>
             </section>
           )}

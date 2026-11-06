@@ -444,9 +444,22 @@ function App() {
   // the one exception: that choice is not finished yet.
   const [navOpen, setNavOpen] = useState(false);
   const closeNavAfterPick = (e) => {
-    const picked = e.target.closest('button');
+    const picked = e.target.closest('button, a');
     if (picked && !picked.classList.contains('profile-switcher-btn')) setNavOpen(false);
   };
+
+  useEffect(() => {
+    if (!navOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setNavOpen(false);
+    };
+    document.body.classList.add('app-nav-lock');
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('app-nav-lock');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [navOpen]);
 
   // v1.10.76 - a fresh editor for every invoice opened, so nothing (such as
   // the stock record of the last invoice) carries over to the next one.
@@ -892,6 +905,14 @@ function App() {
             title={sidebarAutoHide ? 'Keep this menu open' : 'Auto-hide this menu: icons only, it opens when you point at it'}
             onClick={(e) => { e.stopPropagation(); toggleSidebarAutoHide(!sidebarAutoHide); }}>
             <Menu size={18} />
+          </button>
+          <button
+            type="button"
+            className="sidebar-close-mobile"
+            aria-label="Close menu"
+            onClick={(e) => { e.stopPropagation(); setNavOpen(false); }}
+          >
+            <X size={18} />
           </button>
         </div>
 

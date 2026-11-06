@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin, Menu, Phone, X } from 'lucide-react';
 import {
   PRODUCT_NAME,
   SUPPORT_EMAIL,
@@ -10,27 +11,87 @@ import {
 } from '../brand';
 import './public.css';
 
+const NAV_LINKS = [
+  { to: '/', label: 'Home', end: true },
+  { to: '/features', label: 'Features' },
+  { to: '/pricing', label: 'Pricing' },
+  { to: '/about', label: 'About' },
+  { to: '/login', label: 'Sign in' },
+];
+
 export default function PublicLayout() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.body.classList.add('pub-menu-lock');
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.classList.remove('pub-menu-lock');
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const closeMenu = () => setMenuOpen(false);
+
   return (
     <div className="pub-shell">
       <header className="g-header">
-        <Link to="/" className="g-logo">
+        <Link to="/" className="g-logo" onClick={closeMenu}>
           <span className="g-logo-mark">B</span>
-          {PRODUCT_NAME}
+          <span className="g-logo-text">{PRODUCT_NAME}</span>
         </Link>
 
-        <nav className="g-nav">
-          <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/features">Features</NavLink>
-          <NavLink to="/pricing">Pricing</NavLink>
-          <NavLink to="/about">About</NavLink>
-          <NavLink to="/login">Sign in</NavLink>
+        <nav className="g-nav" aria-label="Primary">
+          {NAV_LINKS.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end}>{item.label}</NavLink>
+          ))}
         </nav>
 
         <div className="g-header-right">
-          <Link to="/register" className="g-btn g-btn-primary">Get in Touch</Link>
+          <Link to="/register" className="g-btn g-btn-primary g-header-cta">Get in Touch</Link>
+          <button
+            type="button"
+            className="g-menu-toggle"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="pub-mobile-nav"
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
       </header>
+
+      {menuOpen && (
+        <div className="g-menu-backdrop" onClick={closeMenu} aria-hidden="true" />
+      )}
+
+      <div
+        id="pub-mobile-nav"
+        className={`g-mobile-nav${menuOpen ? ' open' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Site menu"
+        hidden={!menuOpen}
+      >
+        <div className="g-mobile-nav-head">
+          <span className="g-logo-mark">B</span>
+          <strong>{PRODUCT_NAME}</strong>
+          <button type="button" className="g-menu-toggle" aria-label="Close menu" onClick={closeMenu}>
+            <X size={22} />
+          </button>
+        </div>
+        <nav className="g-mobile-nav-links" onClick={closeMenu}>
+          {NAV_LINKS.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end}>{item.label}</NavLink>
+          ))}
+          <Link to="/register" className="g-btn g-btn-primary g-mobile-cta">Start free trial</Link>
+        </nav>
+      </div>
 
       <Outlet />
 

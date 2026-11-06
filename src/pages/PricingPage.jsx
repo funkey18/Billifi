@@ -63,7 +63,7 @@ export default function PricingPage() {
             <h2>Feature comparison</h2>
             <p>Same workspace on every plan. Pick the duration that fits your business.</p>
           </div>
-          <div className="bill-compare-wrap">
+          <div className="bill-compare-wrap bill-compare-desktop">
             <table className="bill-compare-table">
               <thead>
                 <tr>
@@ -93,6 +93,16 @@ export default function PricingPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="bill-compare-mobile">
+            <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--g-muted)' }}>
+              Included in Monthly, Yearly, and 3-Year:
+            </p>
+            <ul>
+              {comparisonFeatures.map((feature) => (
+                <li key={feature}><Check size={15} /> {feature}</li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
